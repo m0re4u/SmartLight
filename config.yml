@@ -1,2 +1,4 @@
+location_provider: manual # or automatic. Uses longitude and latitude if manual
 longitude: 4.9558081
 latitude: 52.3545352
+ping_address: 145.109.25.144
