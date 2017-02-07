@@ -12,4 +12,4 @@ The following packages are only needed to install PyAudio. After PyAudio is
 installed, they can be removed. PyAudio is needed to use the microphone for
 speech recognition.
 
-> `sudo apt-get install portaudio19-dev python3-all-dev`
+    sudo apt-get install portaudio19-dev python3-all-dev
