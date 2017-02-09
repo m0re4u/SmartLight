@@ -4,7 +4,7 @@
 ## Requirements
  - Opencv2 for face detection ([Windows](http://bfy.tw/9v3O), [Linux](https://github.com/jayrambhia/Install-OpenCV))
  - Python 3
- - packages in requirements.txt (run `pip install -r requirements.txt`)
+ - packages in requirements.txt (run `pip3 install -r requirements.txt`)
 
 ### Installation requirements (Linux)
 
@@ -13,3 +13,8 @@ installed, they can be removed. PyAudio is needed to use the microphone for
 speech recognition.
 
     sudo apt-get install portaudio19-dev python3-all-dev
+
+## Testing
+To test the installation of the speech recognition, run:
+
+    python3 -m speech_recognition
