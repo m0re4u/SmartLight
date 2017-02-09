@@ -1,5 +1,4 @@
 # SmartLight
------
 
 ## Installation requirements (Linux)
 
@@ -11,7 +10,7 @@ speech recognition.
 
 ## Requirements
  - Opencv2 for face detection ([Windows](http://bfy.tw/9v3O), [Linux](https://github.com/jayrambhia/Install-OpenCV))
- - Python 3
+ - Python 3 (non anaconda)
  - packages in requirements.txt (run `pip3 install -r requirements.txt`)
 
 
