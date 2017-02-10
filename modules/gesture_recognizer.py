@@ -13,6 +13,7 @@ class GestureRecognizer:
 
     def start_videocapture(self):
         self.fingers = 0
+        self.light = False
 
         #Open Camera object
         self.cap = cv2.VideoCapture(0)
@@ -34,11 +35,20 @@ class GestureRecognizer:
 
     def recognize_continuously(self):
         while(self.cap.isOpened()):
-            self.recognize_once()
-            #close the output video by pressing 'ESC'
-            k = cv2.waitKey(5) & 0xFF
-            if k == 27:
-                break
+            finger_queue = []
+            for i in range(20):
+                self.recognize_once()
+                finger_queue.append(self.fingers)
+                # Close the output video by pressing 'ESC'
+                k = cv2.waitKey(5) & 0xFF
+                if k == 27:
+                    break
+            if np.mean(finger_queue) > 2:
+                self.light = True
+                print(self.light)
+            else:
+                self.light = False
+
         self.cap.release()
         cv2.destroyAllWindows()
 
@@ -166,7 +176,7 @@ class GestureRecognizer:
                     result = result +1
                     cv2.putText(frame,'finger',tuple(finger[i]),font,2,(255,255,255),2)
 
-            print(result)
+            self.fingers = result
 
             #Print number of pointed fingers
             cv2.putText(frame,str(result),(100,100),font,2,(255,255,255),2)
@@ -180,7 +190,6 @@ class GestureRecognizer:
             ##### Show final image ########
             cv2.imshow('Dilation',frame)
             ###############################
-
 
 
 if __name__ == "__main__":
