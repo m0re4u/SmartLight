@@ -15,7 +15,7 @@ def light_on(yml_path="../config.yml"):
 
     result = command(
         'ping ' + parameters + config['ping_address'] + null_outstream)
-    return not result
+    return (not result,)*3
 
 
 if __name__ == '__main__':

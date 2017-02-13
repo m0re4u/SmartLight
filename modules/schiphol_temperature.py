@@ -16,12 +16,12 @@ def light_on(measuring_location='Schiphol', temperature_threshold=10):
 
     if correct_place == -1:
         print('Measuring location could not be found on the KNMI website.')
-        return False
+        return False, False, False
 
     if float(correct_place.find_all('td')[2].string) >= temperature_threshold:
-        return True
+        return True, True, True
     else:
-        return False
+        return False, False, False
 
 
 if __name__ == '__main__':
