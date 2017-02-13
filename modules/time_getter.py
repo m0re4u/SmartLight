@@ -24,6 +24,8 @@ def light_on(yml_path="../config.yml"):
         else:
             print("It's {}, and the light is on!".format(now.time()))
             return True, True, True
+    else:
+        raise requests.HTTPError('Could not connect to server, HTTP status code: {}'.format(r.status_code))
 
 
 if __name__ == '__main__':
