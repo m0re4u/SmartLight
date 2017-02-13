@@ -8,7 +8,8 @@ class GestureRecognizer:
     def __init__(self):
         # Starting with 100's to prevent error while masking
         self.h, self.s, self.v = 100, 100, 100
-
+        self.threshold = 2
+        self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.start_videocapture()
 
     def start_videocapture(self):
@@ -22,17 +23,27 @@ class GestureRecognizer:
         self.cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 1000)
         self.cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 700)
 
+    def light_on(self):
+        return self.light
+
     def recognize_continuously(self):
-        while(self.cap.isOpened()):
+        done = False
+        while(self.cap.isOpened() and not done):
             finger_queue = []
+
+            # Do 20 videocaptures before changing the light switch
             for i in range(20):
                 self.recognize_once()
                 finger_queue.append(self.fingers)
                 # Close the output video by pressing 'ESC'
                 k = cv2.waitKey(5) & 0xFF
                 if k == 27:
+                    done = True
                     break
-            if np.mean(finger_queue) > 2:
+
+            # Change light if average number of fingers is higher than
+            # threshold
+            if finger_queue and np.mean(finger_queue) > self.threshold:
                 self.light = True
                 print(self.light)
             else:
@@ -84,6 +95,7 @@ class GestureRecognizer:
         contours, hierarchy = cv2.findContours(
             thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+
         if len(contours) > 0:
             # Find Max contour area (Assume that hand is in the frame)
             max_area = 100
@@ -106,16 +118,18 @@ class GestureRecognizer:
             hull2 = cv2.convexHull(cnts, returnPoints=False)
             defects = cv2.convexityDefects(cnts, hull2)
 
-            # Get defect points and draw them in the original image
+
             FarDefect = []
-            for i in range(defects.shape[0]):
-                s, e, f, d = defects[i, 0]
-                start = tuple(cnts[s][0])
-                end = tuple(cnts[e][0])
-                far = tuple(cnts[f][0])
-                FarDefect.append(far)
-                cv2.line(frame, start, end, [0, 255, 0], 1)
-                cv2.circle(frame, far, 10, [100, 255, 255], 3)
+            if not defects is None:
+                # Get defect points and draw them in the original image
+                for i in range(defects.shape[0]):
+                    s, e, f, d = defects[i, 0]
+                    start = tuple(cnts[s][0])
+                    end = tuple(cnts[e][0])
+                    far = tuple(cnts[f][0])
+                    FarDefect.append(far)
+                    cv2.line(frame, start, end, [0, 255, 0], 1)
+                    cv2.circle(frame, far, 10, [100, 255, 255], 3)
 
             # Find moments of the largest contour
             moments = cv2.moments(cnts)
@@ -128,10 +142,9 @@ class GestureRecognizer:
 
             # Draw center mass
             cv2.circle(frame, centerMass, 7, [100, 0, 255], 2)
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(
-                frame, 'Center', tuple(centerMass),
-                font, 2, (255, 255, 255), 2)
+
+            cv2.putText(frame, 'Center', tuple(centerMass),
+                        self.font, 2, (255, 255, 255), 2)
 
             # Distance from each finger defect(finger webbing) to the center
             # mass
@@ -154,7 +167,7 @@ class GestureRecognizer:
             # point in the group
             finger = []
             for i in range(0, len(hull)-1):
-                if (np.absolute(hull[i][0][0] - hull[i+1][0][0]) > 80)
+                if (np.absolute(hull[i][0][0] - hull[i+1][0][0]) > 80) \
                 or (np.absolute(hull[i][0][1] - hull[i+1][0][1]) > 80):
                     if hull[i][0][1] < 500:
                         finger.append(hull[i][0])
@@ -179,23 +192,24 @@ class GestureRecognizer:
                 if fingerDistance[i] > AverageDefectDistance + 130:
                     result = result + 1
                     cv2.putText(
-                        frame, 'finger', tuple(finger[i]), font, 2,
+                        frame, 'finger', tuple(finger[i]), self.font, 2,
                         (255, 255, 255), 2)
 
             self.fingers = result
-
-            # Print number of pointed fingers
-            cv2.putText(
-                frame, str(result), (100, 100), font, 2, (255, 255, 255), 2)
 
             # Print bounding rectangle
             x, y, w, h = cv2.boundingRect(cnts)
             img = cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
+            with open('hull.txt','wb') as f:
+                f.write(str(hull))
+
             cv2.drawContours(frame, [hull], -1, (255, 255, 255), 2)
 
+            # Print number of pointed fingers
+            cv2.putText(frame, str(self.fingers), (100, 100),
+                        self.font, 2, (255, 255, 255), 2)
             cv2.imshow('Dilation', frame)
-
 
 if __name__ == "__main__":
     recog = GestureRecognizer()
