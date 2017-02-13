@@ -1,5 +1,5 @@
 def light_on():
-    return True
+    return True, True, True
 
 
 if __name__ == '__main__':

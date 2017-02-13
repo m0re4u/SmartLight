@@ -20,10 +20,12 @@ def light_on(yml_path="../config.yml"):
             data['results']['sunset'], '%I:%M:%S %p').time()
         if sunrise < now.time() < sunset:
             print("It's {}, and the sun is shining!".format(now.time()))
-            return False
+            return False, False, False
         else:
             print("It's {}, and the light is on!".format(now.time()))
-            return True
+            return True, True, True
+    else:
+        raise requests.HTTPError('Could not connect to server, HTTP status code: {}'.format(r.status_code))
 
 
 if __name__ == '__main__':
