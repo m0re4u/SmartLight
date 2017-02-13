@@ -6,7 +6,6 @@ def light_on(yml_path=".api_key"):
     with open(yml_path) as f:
         config = yaml.load(f)
 
-
     api = twitter.Api(consumer_key=config['apikey'],
                       consumer_secret=config['apisecret'],
                       access_token_key=config['accesstoken'],
@@ -14,14 +13,16 @@ def light_on(yml_path=".api_key"):
 
     statuses = api.GetUserTimeline(screen_name=config['user'])
 
+    # Get sentiment from newest tweet
     afinn = Afinn()
-    for tweet in statuses:
-        print(tweet.text)
-        print("SCORE:", afinn.score(tweet.text))
-        print("")
+    score = afinn.score(statuses[0].text)
 
-
-    return True, True, True
+    if score > 0:
+        return
+    elif score < 0:
+        return
+    else:
+        return
 
 
 if __name__ == '__main__':
