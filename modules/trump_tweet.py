@@ -18,11 +18,11 @@ def light_on(yml_path=".api_key"):
     score = afinn.score(statuses[0].text)
 
     if score > 0:
-        return
+        return False, True, False
     elif score < 0:
-        return
+        return True, False, False
     else:
-        return
+        return True, True, True
 
 
 if __name__ == '__main__':
