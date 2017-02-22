@@ -88,5 +88,8 @@ ENV/
 # Rope project settings
 .ropeproject
 
-# API key
+# API key for twitter
 .api_key
+# dataset for OpenFace face detection
+modules/face_recognizer/aligned_data/
+modules/face_recognizer/raw_data/
