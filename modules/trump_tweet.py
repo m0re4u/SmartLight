@@ -2,7 +2,7 @@ import yaml
 import twitter
 from afinn import Afinn
 
-def light_on(yml_path=".api_key"):
+def light_on(yml_path=".api_key"): #TODO: work something out for yml path
     with open(yml_path) as f:
         config = yaml.load(f)
 
