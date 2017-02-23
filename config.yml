@@ -9,11 +9,17 @@ run_name: light_on
 start_name: start
 stop_name: stop
 modules:
-  - modules.aex_is_up
-  - modules.always_on
-  # - modules.gesture_recognizer
-  - modules.kan_ik_een_korte_broek_aan
-  - modules.ping_martin
-  - modules.schiphol_temperature
-  - modules.time_getter
-  # - modules.trump_tweet
+  - name: modules.aex_is_up
+    # pos:
+    #   - 0
+    #   - 0
+    # size:
+    #   - 1
+    #   - 1
+  - name: modules.always_on
+  # - name: modules.gesture_recognizer
+  - name: modules.kan_ik_een_korte_broek_aan
+  - name: modules.ping_martin
+  - name: modules.schiphol_temperature
+  - name: modules.time_getter
+  # - name: modules.trump_tweet

@@ -18,8 +18,8 @@ class Client(object):
         self.modules = []
 
     def register_modules(self):
-        for name in self.config['modules']:
-            self.register_module(name)
+        for dic in self.config['modules']:
+            self.register_module(dic['name'])
 
     def register_module(self, module_name):
         run_name = self.config['run_name']
