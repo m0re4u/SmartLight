@@ -5,18 +5,6 @@ import logging
 from importlib import import_module
 
 logger = logging.getLogger(__name__)
-# MODULES_DIRECTORY
-
-# Find, import and register modules.
-# blueprints = (os.listdir(MODULES_DIRECTORY) if bp != 'admin')
-# for bp_name in blueprints:
-#     try:
-#         bp = import_module('freevle.blueprints.' + bp_name)
-#         app.register_blueprint(bp.bp, url_prefix=bp.URL_PREFIX)
-#     except ImportError:
-#         raise ImportError("{} blueprint appears to be broken.".format(bp_name))
-#     except AttributeError:
-#         raise ImportError("{} blueprint doesn't have a blueprint.".format(bp_name))
 
 
 class Client(object):
