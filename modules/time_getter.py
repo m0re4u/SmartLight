@@ -1,12 +1,9 @@
 import json
-import yaml
 import requests
 from datetime import datetime
 
 
-def light_on(yml_path="../config.yml"):
-    with open(yml_path) as f:
-        config = yaml.load(f)
+def light_on(config):
     r = requests.get(
         "http://api.sunrise-sunset.org/json?lat={}&lng={}&date=today".format(
             config['longitude'], config['latitude'])
@@ -29,4 +26,7 @@ def light_on(yml_path="../config.yml"):
 
 
 if __name__ == '__main__':
-    print(light_on())
+    import yaml
+    with open('../config.yml') as f:
+        config = yaml.load(f)
+    print(light_on(config))

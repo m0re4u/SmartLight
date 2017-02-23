@@ -1,4 +1,25 @@
 location_provider: manual # or automatic. Uses longitude and latitude if manual
 longitude: 4.9558081
 latitude: 52.3545352
-ping_address: 145.109.25.144
+ping_address: 145.109.6.27
+modules_directory: ./modules
+temperature_measurement_location: Schiphol
+temperature_threshold: 10
+run_name: light_on
+start_name: start
+stop_name: stop
+modules:
+  - name: modules.aex_is_up
+    # pos:
+    #   - 0
+    #   - 0
+    # size:
+    #   - 1
+    #   - 1
+  - name: modules.always_on
+  # - name: modules.gesture_recognizer
+  - name: modules.kan_ik_een_korte_broek_aan
+  - name: modules.ping_martin
+  - name: modules.schiphol_temperature
+  - name: modules.time_getter
+  # - name: modules.trump_tweet
