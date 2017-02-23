@@ -1,6 +1,6 @@
 server_ip: 10.42.0.177
 server_port: 50007
-location_provider: manual # or automatic. Uses longitude and latitude if manual
+location_provider: automatic # or automatic. Uses longitude and latitude if manual
 longitude: 4.9558081
 latitude: 52.3545352
 ping_address: 145.109.6.27
