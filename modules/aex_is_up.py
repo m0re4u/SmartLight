@@ -6,9 +6,7 @@ def light_on(config):
 
     url = "http://nl.quoteweb.com/nl-nl/fonds-detail/koers/?id=12272&title=aex"
     content = urllib.request.urlopen(url).read()
-    # soup = bs4.BeautifulSoup(content, 'lxml')
     soup = bs4.BeautifulSoup(content, 'html.parser')
-    # soup = bs4.BeautifulSoup(content)
 
     up_down = soup.find('tbody').find_all('tr')[1].find_all('td')[1]['class'][0]
     if up_down == 'up':
