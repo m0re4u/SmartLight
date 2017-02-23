@@ -112,7 +112,7 @@ class Client(object):
         Run the `start` functions of the modules that have it
         """
         logger.debug("Starting: " + mod.__name__)
-        getattr(mod, self.config['start'])()
+        getattr(mod, self.config['start'])(self.config)
 
     @iter_func('modules_with_stop')
     def stop_modules(self, mod):
@@ -123,7 +123,7 @@ class Client(object):
         # stop other modules from stopping
         logger.debug("Stopping: " + mod.__name__)
         try:
-            getattr(mod, self.config['stop'])()
+            getattr(mod, self.config['stop'])(self.config)
             logger.debug("Stopped {}".format(mod.__name__))
         except:
             logger.error(traceback.format_exc())
