@@ -6,7 +6,7 @@ def light_on(config):
 
     url = "http://www.kanikeenkortebroekaan.nl"
     content = urllib.request.urlopen(url).read()
-    soup = bs4.BeautifulSoup(content, 'lxml')
+    soup = bs4.BeautifulSoup(content, 'html.parser')
 
     ja_nee = soup.find('body')['class'][0]
     if ja_nee == 'nee':

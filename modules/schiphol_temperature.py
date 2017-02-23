@@ -9,7 +9,7 @@ def light_on(config):
 
     url = 'http://www.knmi.nl/nederland-nu/weer/waarnemingen'
     content = urllib.request.urlopen(url).read()
-    soup = bs4.BeautifulSoup(content, 'lxml')
+    soup = bs4.BeautifulSoup(content, 'html.parser')
 
     measurements = soup.find('tbody').find_all('tr')
 
