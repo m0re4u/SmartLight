@@ -3,31 +3,53 @@ import traceback
 import logging
 import socket
 from coder import encode
-from threading import Thread
 from functools import wraps
 from importlib import import_module
 from time import sleep
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level='DEBUG')
+
+
+def iter_func(attr):
+    """
+    Create a wrapper that executes the wrapped function for every element
+    in getattr(self, attr).
+    """
+    def wrapper(func):
+        @wraps(func)
+        def inner(self, *args, **kwargs):
+            for mod in getattr(self, attr):
+                func(self, mod, *args, **kwargs)
+        return inner
+    return wrapper
 
 
 class Client(object):
     def __init__(self, config):
         self.config = config
         self.clear_modules()
-        self.register_modules()
+        for name in self.config['modules']:
+            self.register_module(name)
 
     def clear_modules(self):
+        """Clear all registered modules"""
         self.modules_with_start = []
         self.modules_with_stop = []
         self.modules = []
 
-    def register_modules(self):
-        for name in self.config['modules']:
-            self.register_module(name)
-
     def register_module(self, module_name):
+        """
+        Register a module.
+
+        A module must define a `light_on` function.
+
+        A module may define a `stop` function. This will be called when
+        shutting down, after `light_on` is called for the last time.
+
+        A module may define a `start` function only when it also defines a
+        `stop` function. This will be called when initialising, before
+        `light_on` is called for the first time.
+        """
         run_name = self.config['run_name']
         start_name = self.config['start_name']
         stop_name = self.config['stop_name']
@@ -68,57 +90,21 @@ class Client(object):
         """
         Keep checking the value of the lights until KeyboardInterrupt
         """
-        logger.debug("I was started!")
-
-        def the_run(self):
+        try:
+            self.start_modules()
             while True:
                 self.lights_on()
                 sleep(self.config['sleep_seconds'])
-
-        try:
-            logger.debug("I'm starting")
-            a = self.start_modules()
-            logger.debug("Returned: {}".format(a))
-
-            logger.debug("I've started")
-
-            # checking_thread = Thread(target=the_run, args=(self,), daemon=True)
-            # checking_thread.start()
-            # input("Hit <return> to stop the client.")
-            # checking_thread.stop()
-            # logger.info("Bye!")
-
-            the_run(self)
-
         except KeyboardInterrupt:
             logger.info("Bye!")
         except:
             logger.error("THERE WAS AN ERROR")
             logger.error(traceback.format_exc())
         finally:
+            # self.send_msg((0, 0), (32, 16), (0, 0, 0))
+            # THIS IS A HOTFIX
+            self.send_msg((0, 0), (31, 15), (0, 0, 0))
             self.stop_modules()
-
-    def iter_func(attr):
-        """
-        Create a wrapper that executes the wrapped function for every element
-        in getattr(self, attr).
-        """
-        logger.debug("I wrapped something with {}".format(attr))
-
-        def wrapper(func):
-            logger.debug("I wrapped {}".format(func))
-
-            @wraps(func)
-            def inner(self, *args, **kwargs):
-                logger.debug("I'm doing something with {}".format(attr))
-                for mod in getattr(self, attr):
-                    func(self, mod, *args, **kwargs)
-            return inner
-        return wrapper
-
-    @iter_func('modules')
-    def lights_on(self, mod):
-        self.send_lights(mod.__name__, mod.light_on(self.config))
 
     @iter_func('modules_with_start')
     def start_modules(self, mod):
@@ -126,7 +112,7 @@ class Client(object):
         Run the `start` functions of the modules that have it
         """
         logger.debug("Starting: " + mod.__name__)
-        getattr(mod, self.config['start'])()
+        getattr(mod, self.config['start'])(self.config)
 
     @iter_func('modules_with_stop')
     def stop_modules(self, mod):
@@ -137,11 +123,17 @@ class Client(object):
         # stop other modules from stopping
         logger.debug("Stopping: " + mod.__name__)
         try:
-            getattr(mod, self.config['stop'])()
+            getattr(mod, self.config['stop'])(self.config)
             logger.debug("Stopped {}".format(mod.__name__))
         except:
             logger.error(traceback.format_exc())
             logger.warning("{} wasn't stopped!".format(mod.__name__))
+
+    @iter_func('modules')
+    def lights_on(self, mod):
+        lights = mod.light_on(self.config)
+        logger.info('{}: {}'.format(mod.__name__, lights))
+        self.send_lights(mod.__name__, lights)
 
     def send_lights(self, module_name, light_values):
         """
@@ -151,21 +143,19 @@ class Client(object):
         module_config = self.config['modules'][module_name]
         pos = module_config['pos']
         size = module_config['size']
-        # pos = map(int, module_config['pos'])
-        # size = map(int, module_config['size'])
-        signal = encode(*pos, *size, *light_values)
 
         # send the signal
-        self.send_msg(signal)
+        self.send_msg(pos, size, light_values)
 
-    def send_msg(self, signal):
+    def send_msg(self, pos, size, light_values):
+        signal = encode(*pos, *size, *light_values)
         # print(repr(self.config['testing']))
         if self.config['testing']:
-            logger.debug("Sencding: {}".format(signal))
+            logger.debug("Sending: {}".format(signal))
             return
 
         ip = self.config['server_ip']
-        port = int(self.config['server_port'])
+        port = self.config['server_port']
 
         # AF_INET >> IPv4
         # SOCK_STREAM >> TCP
@@ -174,9 +164,9 @@ class Client(object):
         message = signal.to_bytes(4, byteorder='big')
         s.send(message)
 
-        resp = s.recv(1000)
+        # Receive a message (as part of TCP?) (and discard it)
+        s.recv(1000)
         s.close()
-        # logger.info("Server response: {}".format(resp.decode()))
 
 
 if __name__ == '__main__':
@@ -189,14 +179,16 @@ if __name__ == '__main__':
         type=FileType('r'),
         default='config.yml'
     )
+    parser.add_argument(
+        '-l',
+        '--log_level',
+        default='INFO'
+    )
 
     args = parser.parse_args()
+    logging.basicConfig(level=args.log_level)
     config = yaml.load(args.config_file)
     args.config_file.close()
 
     client = Client(config)
-
-    for mod in client.modules:
-        logger.debug(mod)
-
     client.run()
