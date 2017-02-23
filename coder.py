@@ -5,7 +5,7 @@ def encode(xpos, ypos, width, height, red=True, green=True, blue=True,
     int of 3 bytes, which can be decoded using decode
 
     0 <= xpos <= 31: 5 bits
-    0 <= ypos <= 16: 4 bits
+    0 <= ypos <= 15: 4 bits
     """
 
     # input validation first

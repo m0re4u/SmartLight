@@ -1,6 +1,7 @@
 import yaml
 import traceback
 import logging
+from coder import encode
 from importlib import import_module
 
 logger = logging.getLogger(__name__)
@@ -61,11 +62,30 @@ class Client(object):
         Run the `stop` functions of the modules that have it
         """
 
-    def send_lights(self, *args):
+    def send_lights(self, light_values, module_name):
         """
         Send the value of some lights
         """
+        # get the signal
+        module_config = self.config['modules'][module_name]
+        pos = module_config['pos']
+        size = [module_config]['size']
+        signal = encode(*pos, *size, *light_values)
 
+        # send the signal
+        send_msg(self, signal)
+
+    def send_msg(self, signal):
+        ip = self.config['server_ip']
+        port = self.config['server_port']
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, port))
+        message = signal.to_bytes(4, byteorder='big')
+        s.send(message)
+
+        resp = s.recv(1000)
+        logger.info(resp)
 
 if __name__ == '__main__':
     from argparse import ArgumentParser, FileType

@@ -1,3 +1,5 @@
+server_ip: EXAMPLE
+server_port: EXMAPLE
 location_provider: manual # or automatic. Uses longitude and latitude if manual
 longitude: 4.9558081
 latitude: 52.3545352
@@ -9,17 +11,59 @@ run_name: light_on
 start_name: start
 stop_name: stop
 modules:
-  - name: modules.aex_is_up
-    # pos:
-    #   - 0
-    #   - 0
-    # size:
-    #   - 1
-    #   - 1
-  - name: modules.always_on
-  # - name: modules.gesture_recognizer
-  - name: modules.kan_ik_een_korte_broek_aan
-  - name: modules.ping_martin
-  - name: modules.schiphol_temperature
-  - name: modules.time_getter
-  # - name: modules.trump_tweet
+  modules.aex_is_up:
+    pos:
+      - 1 # x-position, left is 0, positive is to the right
+      - 1 # y-position, top is 0, positive is down
+    size:
+      - 3 # x-size / width
+      - 2 # y-size / height
+  modules.always_on:
+    pos:
+      - 5
+      - 1
+    size:
+      - 2
+      - 2
+  # modules.gesture_recognizer:
+  #  pos:
+  #    - 30
+  #    - 14
+  #  size:
+  #    - 2
+  #    - 2
+  modules.kan_ik_een_korte_broek_aan:
+    pos:
+      - 1
+      - 4
+    size:
+      - 2
+      - 2
+  modules.ping_martin:
+    pos:
+      - 5
+      - 4
+    size:
+      - 3
+      - 2
+  modules.schiphol_temperature:
+    pos:
+      - 10
+      - 10
+    size:
+      - 2
+      - 2
+  modules.time_getter:
+    pos:
+      - 15
+      - 15
+    size:
+      - 4
+      - 1
+  # modules.trump_tweet:
+  #  pos:
+  #    - 25
+  #    - 8
+  #  size:
+  #    - 1
+  #    - 7
