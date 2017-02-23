@@ -43,6 +43,21 @@ class Client(object):
     def run(self):
         ...
 
+    def start_modules(self):
+        """
+        Run the `start` functions of the modules that have it
+        """
+
+    def stop_modules(self):
+        """
+        Run the `stop` functions of the modules that have it
+        """
+
+    def send_lights(self, *args):
+        """
+        Send the value of some lights
+        """
+
 
 if __name__ == '__main__':
     from argparse import ArgumentParser, FileType
