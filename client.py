@@ -1,3 +1,4 @@
+import os
 import yaml
 import traceback
 import logging
@@ -6,6 +7,7 @@ from coder import encode
 from functools import wraps
 from importlib import import_module
 from time import sleep
+from modules.face_recognizer import FaceDetector as fr
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +179,6 @@ if __name__ == '__main__':
         '-c',
         '--config_file',
         type=FileType('r'),
-        default='config.yml'
     )
     parser.add_argument(
         '-l',
@@ -187,8 +188,31 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     logging.basicConfig(level=args.log_level)
-    config = yaml.load(args.config_file)
-    args.config_file.close()
+    if args.config_file is None:
+        argument_dict = {
+            'captureDevice': 0, 'height': 240, 'cuda': False, 'width': 320,
+            'threshold': 0.5, 'imgDim': 96,
+            'classifierModel': 'features/classifier.pkl',
+            'networkModel': '/home/m0re/projects/openface/models/openface/nn4.small2.v1.t7',
+            'verbose': False, 'dlibFacePredictor': '/home/m0re/projects/openface/models/dlib/shape_predictor_68_face_landmarks.dat'}
+        detec = fr.FaceDetector(argument_dict)
+        person = detec.recognize_person(
+            0, 320, 240, 'modules/face_recognizer/features/classifier.pkl',
+            0.7)
+        print("{} logged in!".format(person))
+        config_name = "{}.yml".format(person)
+        if os.path.exists(config_name):
+            with open(config_name) as f:
+                config = yaml.load(f)
+        else:
+            print("{} does not exist, falling back on default config".format(
+                config_name
+            ))
+            with open("config.yml") as f:
+                config = yaml.load(f)
+    else:
+        config = yaml.load(args.config_file)
+        args.config_file.close()
 
     client = Client(config)
     client.run()
