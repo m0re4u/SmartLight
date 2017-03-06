@@ -179,6 +179,8 @@ if __name__ == '__main__':
         '-c',
         '--config_file',
         type=FileType('r'),
+        help="Provide a configuration file that will be used to load in "
+        "settings for the lights. If omitted, it will use face detection"
     )
     parser.add_argument(
         '-l',
