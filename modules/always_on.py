@@ -1,6 +1,9 @@
-def light_on():
+def light_on(config):
     return True, True, True
 
 
 if __name__ == '__main__':
-    print(light_on())
+    import yaml
+    with open('../config.yml') as f:
+        config = yaml.load(f)
+    print(light_on(config))

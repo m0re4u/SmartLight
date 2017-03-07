@@ -2,10 +2,14 @@ import urllib.request
 import bs4
 
 
-def light_on(measuring_location='Schiphol', temperature_threshold=10):
+def light_on(config):
+    measuring_location = config['temperature_measurement_location']
+    temperature_threshold = config['temperature_threshold']
+
+
     url = 'http://www.knmi.nl/nederland-nu/weer/waarnemingen'
     content = urllib.request.urlopen(url).read()
-    soup = bs4.BeautifulSoup(content, 'lxml')
+    soup = bs4.BeautifulSoup(content, 'html.parser')
 
     measurements = soup.find('tbody').find_all('tr')
 
@@ -25,4 +29,7 @@ def light_on(measuring_location='Schiphol', temperature_threshold=10):
 
 
 if __name__ == '__main__':
-    print(light_on())
+    import yaml
+    with open('../config.yml') as f:
+        config = yaml.load(f)
+    print(light_on(config))
