@@ -1,16 +1,17 @@
 import cv2
 import numpy as np
 import time
-
+import openface
 
 class GestureRecognizer:
 
     def __init__(self):
         # Starting with 100's to prevent error while masking
-        self.h, self.s, self.v = 100, 100, 100
-        self.threshold = 2
+        self.threshold = 1.8
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.start_videocapture()
+        self.align = openface.AlignDlib('face_recognizer/shape_predictor_68_face_landmarks.dat')
+        self.net = openface.TorchNeuralNet('face_recognizer/nn4.small2.v1.t7', 96)
 
     def start_videocapture(self):
         self.fingers = 0
@@ -23,8 +24,11 @@ class GestureRecognizer:
         self.cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 1000)
         self.cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 700)
 
-    def light_on(self):
-        return self.light
+    def light_on(self, config):
+        if self.light is True:
+            return (True, True, True)
+        else:
+            return (False, False, False)
 
     def recognize_continuously(self):
         done = False
@@ -32,7 +36,7 @@ class GestureRecognizer:
             finger_queue = []
 
             # Do 20 videocaptures before changing the light switch
-            for i in range(20):
+            for i in range(5):
                 self.recognize_once()
                 finger_queue.append(self.fingers)
                 # Close the output video by pressing 'ESC'
@@ -61,16 +65,22 @@ class GestureRecognizer:
         # Capture frames from the camera
         ret, frame = self.cap.read()
 
+        cv2.imwrite('img.png',frame)
+
         # Blur the image
         blur = cv2.blur(frame, (3, 3))
 
         # Convert to HSV color space
         hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
+        mask2 = cv2.inRange(hsv, np.array([0, 50, 50]),
+                np.array([15, 255, 255]))
+
+        cv2.imwrite('bla.png',mask2)
+        # Cr > 150 && Cr < 200 && Cb > 100 && Cb < 150.
 
         # Create a binary image with where white will be skin colors and rest
         # is black
-        mask2 = cv2.inRange(
-            hsv, np.array([2, 50, 50]), np.array([15, 255, 255]))
+
 
         # Kernel matrices for morphological transformation
         kernel_square = np.ones((11, 11), np.uint8)
@@ -91,6 +101,8 @@ class GestureRecognizer:
         median = cv2.medianBlur(dilation2, 5)
         ret, thresh = cv2.threshold(median, 127, 255, 0)
 
+        cv2.imwrite('bla2.png',thresh)
+
         # Find contours of the filtered frame
         contours, hierarchy = cv2.findContours(
             thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -100,24 +112,21 @@ class GestureRecognizer:
             # Find Max contour area (Assume that hand is in the frame)
             max_area = 100
             ci = 0
+            cnts = []
+
             for i in range(len(contours)):
                 cnt = contours[i]
                 area = cv2.contourArea(cnt)
-                if(area > max_area):
+
+                # Find largest hand candidate that does not contain a face
+                if(area > max_area and not self.check_for_face(cnt, frame)):
                     max_area = area
-                    ci = i
+                    cnts = cnt
 
-            # Largest area contour
-            if not len(contours) == 0:
-                cnts = contours[ci]
-
-            # Find convex hull
+            # Find convex hull and defects
             hull = cv2.convexHull(cnts)
-
-            # Find convex defects
             hull2 = cv2.convexHull(cnts, returnPoints=False)
             defects = cv2.convexityDefects(cnts, hull2)
-
 
             FarDefect = []
             if not defects is None:
@@ -133,6 +142,8 @@ class GestureRecognizer:
 
             # Find moments of the largest contour
             moments = cv2.moments(cnts)
+
+
 
             # Central mass of first order moments
             if moments['m00'] != 0:
@@ -166,9 +177,10 @@ class GestureRecognizer:
             # If points are in proximity of 80 pixels, consider as a single
             # point in the group
             finger = []
+            proximity = 1.6 * AverageDefectDistance
             for i in range(0, len(hull)-1):
-                if (np.absolute(hull[i][0][0] - hull[i+1][0][0]) > 80) \
-                or (np.absolute(hull[i][0][1] - hull[i+1][0][1]) > 80):
+                if (np.absolute(hull[i][0][0] - hull[i+1][0][0]) > proximity) \
+                or (np.absolute(hull[i][0][1] - hull[i+1][0][1]) > proximity):
                     if hull[i][0][1] < 500:
                         finger.append(hull[i][0])
 
@@ -210,6 +222,23 @@ class GestureRecognizer:
             cv2.putText(frame, str(self.fingers), (100, 100),
                         self.font, 2, (255, 255, 255), 2)
             cv2.imshow('Dilation', frame)
+
+    def check_for_face(self, contours, frame):
+        faces = []
+        bb = False
+
+        # Extract the x and y coordinates from the contours of possible hand
+        X = [coordinates[0] for item in contours for coordinates in item]
+        Y = [coordinates[1] for item in contours for coordinates in item]
+        img = frame[min(Y):max(Y),min(X):max(X)]
+
+        # Look for faces in nonempty image
+        if not len(img) == 0:
+            rgbImg = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            bb = self.align.getLargestFaceBoundingBox(rgbImg)
+            cv2.imwrite('face.png',img)
+
+        return (not bb is None)
 
 if __name__ == "__main__":
     recog = GestureRecognizer()
