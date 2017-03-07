@@ -144,11 +144,18 @@ class Client(object):
         """
         # get the signal
         module_config = self.config['modules'][module_name]
-        pos = module_config['pos']
-        size = module_config['size']
-
+        if len(light_values) == 3:
+            pos = module_config['pos']
+            size = module_config['size']
+            self.send_msg(pos, size, light_values)
         # send the signal
-        self.send_msg(pos, size, light_values)
+        elif len(light_values) % 3 == 0:
+            for i in range(0, len(light_values), 3):
+                pos = module_config[i]['pos']
+                size = module_config[i]['size']
+                send_msg(pos, size, light_values[i*3:(i+1)*3])
+        else:
+            logger.error("The tuple returned by {} does not have a length of a multiple of 3".format(module_name))
 
     def send_msg(self, pos, size, light_values):
         signal = encode(*pos, *size, *light_values)

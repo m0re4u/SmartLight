@@ -29,14 +29,14 @@ modules:
       - 2
   # modules.gesture_recognizer:
   #  pos:
-  #    - 30
-  #    - 14
+  #    - 6
+  #    - 0
   #  size:
   #    - 2
   #    - 2
   modules.kan_ik_een_korte_broek_aan:
     pos:
-      - 6
+      - 9
       - 0
     size:
       - 2
@@ -64,8 +64,33 @@ modules:
       - 2
   # modules.trump_tweet:
   #  pos:
-  #    - 25
-  #    - 8
+  #    - 9
+  #    - 3
   #  size:
-  #    - 1
-  #    - 7
+  #    - 2
+  #    - 2
+  modules.speech_recognizer:
+    -pos:
+      - 0
+      - 6
+    size:
+      - 2
+      - 2
+    -pos:
+      - 3
+      - 6
+    size:
+      - 2
+      - 2
+    -pos:
+      - 6
+      - 6
+    size:
+      - 2
+      - 2
+    -pos:
+      - 9
+      - 6
+    size:
+      - 2
+      - 2
