@@ -88,8 +88,8 @@ class FaceDetector():
 
         confidenceList = []
         login_test = {}
-        logged_in = ""
-        while logged_in == "":
+        logged_in = b""
+        while logged_in == b"":
             ret, frame = video_capture.read()
             persons, confidences = self.infer(frame, model)
             # If there is more than one person in the image, do not try to
@@ -112,7 +112,7 @@ class FaceDetector():
                     if persons[i] in login_test:
                         login_test[persons[i]] = 0
                         print_progress(0, LOGIN_CUTOFF+1, bar_length=35)
-                    persons[i] = "_unknown"
+                    persons[i] = b"_unknown"
                 else:
                     # If we know the face, update the logon counter
                     if persons[i] in login_test:
@@ -137,8 +137,8 @@ class FaceDetector():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         # When everything is done, release the capture
-        video_capture.release()
         cv2.destroyAllWindows()
+        video_capture.release()
         return logged_in.decode('ascii')
 
 

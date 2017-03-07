@@ -104,7 +104,8 @@ class Client(object):
             logger.error(traceback.format_exc())
         finally:
             # self.send_msg((0, 0), (32, 16), (0, 0, 0))
-            # THIS IS A HOTFIX
+            # THIS IS A HOTFIX, (32, 16) results in some weird bug with the
+            # edge of the board
             self.send_msg((0, 0), (31, 15), (0, 0, 0))
             self.stop_modules()
 
@@ -159,8 +160,8 @@ class Client(object):
         ip = self.config['server_ip']
         port = self.config['server_port']
 
-        # AF_INET >> IPv4
-        # SOCK_STREAM >> TCP
+        # AF_INET: IPv4
+        # SOCK_STREAM: TCP
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
         message = signal.to_bytes(4, byteorder='big')
@@ -201,15 +202,14 @@ if __name__ == '__main__':
         person = detec.recognize_person(
             0, 320, 240, 'modules/face_recognizer/features/classifier.pkl',
             0.7)
-        print("{} logged in!".format(person))
         config_name = "{}.yml".format(person)
-        if os.path.exists(config_name):
+        if person != "" and os.path.exists(config_name):
+            logger.info("{} logged in!".format(person))
             with open(config_name) as f:
                 config = yaml.load(f)
         else:
-            print("{} does not exist, falling back on default config".format(
-                config_name
-            ))
+            logger.info("Failed to log in, falling back on default config:"
+                        " \'config.yml\'")
             with open("config.yml") as f:
                 config = yaml.load(f)
     else:
