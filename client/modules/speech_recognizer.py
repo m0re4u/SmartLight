@@ -11,84 +11,85 @@ logger = logging.getLogger(__name__)
 
 class SpeechRecogniser(object):
     def __init__(self, config):
+        # Read in config
+        self.n_lights = config['speech']['nlights']
+        self.commands = config['speech']['commands']
 
-        self.on_command = [["turn","on"],["turn","on","light"]]
-        self.off_command = [["turn","off"],["turn","off","light"]]
-        self.lights = ["1","2","3","4"]
-        self.pause_threshold = 0.6
-        self.phrase_time_limit = 5
-        self.n_lights = len(self.lights)
-        self.lights_status = []
+        # Split the text of the commands
+        for description in self.commands:
+            description['text'] = [
+                frozenset(string.lower().split()) for string in description['text']
+            ]
+
+        self.pause_threshold = config['speech']['pause_threshold']
+        self.phrase_time_limit = config['speech']['phrase_time_limit']
+        self.lights_status = [False for _ in range(self.n_lights*3)]
 
         # Threading infrastructure
         self.stop_recognising = Event()
         self.thread = Thread(
-            name="Speechrec",
+            name="Speech Recognising Thread",
             target=self.recognize_continuously
         )
 
-        for i in range(self.n_lights*3):
-            self.lights_status.append(False)
-
     def recognize_command(self, candidates):
-        on_command, light_on, conf_on = self.find_command(
-            candidates,
-            self.on_command
-        )
-        off_command, light_off, conf_off = self.find_command(
-            candidates,
-            self.off_command
-        )
+        """
+        Find the command with the highest confidence in the candidates
+        """
+        for can in candidates:
+            can['transcript'] = set(can['transcript'].lower().split())
 
-        if conf_on > 0:
-            logger.debug("On %s with confidence %s", light_on, conf_on)
-            logger.debug(on_command)
-            self.lightswitch(1, int(light_on))
-        elif conf_off > 0:
-            logger.debug("Off %s with confidence %s", light_off, conf_off)
-            logger.debug(off_command)
-            self.lightswitch(0, int(light_off))
+        commands = [
+            (description['values'],) + self.find_command(
+                    candidates,
+                    description['text']
+            )
+            for description in self.commands
+        ]
+        commands = [c for c in commands if c[2] > 0]
+        if commands:
+            values, lights, confidence = max(commands, key=lambda c: c[2])
+            self.lightswitch(values, lights)
+            logger.debug("Executed command: {}, {}, {}".format(
+                values, lights, confidence
+            ))
         else:
             logger.debug("No command found.")
 
-    def lightswitch(self, on, n):
-        if on:
-            self.lights_status[n*3-3] = True
-            self.lights_status[n*3-3+1] = True
-            self.lights_status[n*3-3+2] = True
-        else:
-            self.lights_status[n*3-3] = False
-            self.lights_status[n*3-3+1] = False
-            self.lights_status[n*3-3+2] = False
-        print(self.lights_status)
+    def lightswitch(self, values, lights):
+        for n in lights:
+            self.lights_status[n*3:(n+1)*3] = values
+        logger.debug(self.lights_status)
 
     def light_on(self, config):
         return tuple(self.lights_status)
 
-    def find_command(self, candidates, commands):
-        right_light = 0
-        conf = 0
-        correct_command = ""
-
+    def find_command(self, candidates, texts):
+        """
+        Discover whether the command represented by a set of strings is
+        present in the candidate transcriptions.
+        Return the confidence and the lights present in the most confident
+        candidate.
+        """
         # Find correct candidates
         correct_candidates = [
             can for can in candidates
-            if any(
-                set(com) <= set(can['transcript'].split())
-                for com in commands
-            )
+            if any(com <= can['transcript'] for com in texts)
         ]
 
-        # TODO: multiple lights?
-        for candidate in correct_candidates:
-            candidate_text = candidate['transcript'].split()
-            for light in self.lights:
-                if light in candidate_text:
-                    right_light = light
-                    conf = candidate['confidence']
-                    correct_command = candidate_text
-
-        return (correct_command, right_light, conf)
+        # Find the candidate with the highest confidence and
+        # find all the lights mentioned in the command
+        lights = [
+            (
+                [light for light in range(self.n_lights)
+                 if str(light + 1) in can['transcript']],
+                can['confidence']
+            )
+            for can in correct_candidates
+        ]
+        lights = [l for l in lights if l[0]]
+        return max(lights, key=lambda c: c[1]) \
+            if lights else (None, float('-Inf'))
 
     def start(self):
         """Start listening and recognising"""
@@ -109,20 +110,14 @@ class SpeechRecogniser(object):
 
         with sr.Microphone() as source:
             while not self.stop_recognising.is_set():
-                print("Say something!")
+                # print("Say something!")
                 audio = r.listen(
                     source,
                     phrase_time_limit=self.phrase_time_limit
                 )
-                speech_to_text = r.recognize_google(audio, show_all=True)
-                if speech_to_text:
-                    candidates = speech_to_text['alternative']
-                    self.recognize_command(candidates)
-                    logger.debug("Candidates: ")
-                    for can in candidates:
-                        logger.debug(can)
                     # recognize speech using Google Speech Recognition
                 try:
+                    speech_to_text = r.recognize_google(audio, show_all=True)
                     # for testing purposes, we're just using the default API
                     # key to use another API key, use
                     # `r.recognize_google(
@@ -130,17 +125,24 @@ class SpeechRecogniser(object):
                     #     key="GOOGLE_SPEECH_RECOGNITION_API_KEY"
                     # )`
                     # instead of `r.recognize_google(audio)`
-                    print("Google Speech Recognition thinks you said ")
+                    # print("Google Speech Recognition thinks you said ")
                 except sr.UnknownValueError:
-                    print(
+                    logger.error(
                         "Google Speech Recognition could not understand audio"
                     )
                 except sr.RequestError as e:
-                    print(
+                    logger.error(
                         "Could not request results from Google Speech"
                         " Recognition service; {0}".format(e)
                     )
-        print("Stopped recognising.")
+                else:
+                    if speech_to_text:
+                        candidates = speech_to_text['alternative']
+                        self.recognize_command(candidates)
+                        logger.debug("Candidates: ")
+                        for can in candidates:
+                            logger.debug(can)
+        # print("Stopped recognising.")
 
 
 global speech_recognisor
@@ -172,15 +174,17 @@ if __name__ == "__main__":
     with open('../config.yml') as f:
         config = yaml.load(f)
 
-    start(config)
+    speech_recognisor = SpeechRecogniser(config)
+    speech_recognisor.recognize_continuously()
+    # start(config)
 
-    sleep(1)
+    # sleep(1)
 
-    try:
-        while True:
-            print(light_on(config))
-            sleep(1)
-    except KeyboardInterrupt:
-        print("bye!")
-    finally:
-        stop(config)
+    # try:
+    #     while True:
+    #         print(light_on(config))
+    #         sleep(1)
+    # except KeyboardInterrupt:
+    #     print("bye!")
+    # finally:
+    #     stop(config)
