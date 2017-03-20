@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#! /usr/bin/python
 #
 # Example to run classifier on webcam stream.
 # Brandon Amos & Vijayenthiran
@@ -31,7 +31,7 @@ import pickle
 
 import numpy as np
 from sklearn.mixture import GMM
-from loading_bar import print_progress
+from .loading_bar import print_progress
 import openface
 np.set_printoptions(precision=2)
 
@@ -48,9 +48,6 @@ def getRep(bgrImg):
         raise Exception("Unable to load image/frame")
 
     rgbImg = cv2.cvtColor(bgrImg, cv2.COLOR_BGR2RGB)
-
-    if args.verbose:
-        print("  + Original size: {}".format(rgbImg.shape))
 
     # Get the largest face bounding box
     # bb = align.getLargestFaceBoundingBox(rgbImg) #Bounding box
@@ -82,9 +79,10 @@ def getRep(bgrImg):
     return reps
 
 
-def infer(img, args):
-    with open(args.classifierModel, 'r') as f:
-        (le, clf) = pickle.load(f)  # le - label and clf - classifer
+def infer(img, model):
+    with open(model, 'rb') as f:
+        # le - label and clf - classifer
+        (le, clf) = pickle.load(f, encoding='latin1')
 
     reps = getRep(img)
     persons = []
@@ -92,8 +90,8 @@ def infer(img, args):
     for rep in reps:
         try:
             rep = rep.reshape(1, -1)
-        except:
-            print "No Face detected"
+        except e:
+            print("No Face detected")
             return (None, None)
         predictions = clf.predict_proba(rep).ravel()
         # print predictions
@@ -108,6 +106,68 @@ def infer(img, args):
             print("  + Distance from the mean: {}".format(dist))
             pass
     return (persons, confidences)
+
+
+def recognize_person(cap_dev, w, h, model, thresh):
+    # Capture device. Usually 0 will be webcam and 1 will be usb cam.
+    video_capture = cv2.VideoCapture(cap_dev)
+    video_capture.set(3, w)
+    video_capture.set(4, h)
+
+    confidenceList = []
+    login_test = {}
+    logged_in = ""
+    while logged_in == "":
+        ret, frame = video_capture.read()
+        persons, confidences = infer(frame, model)
+        # If there is more than one person in the image, do not try to log one
+        # of them in.
+        if len(persons) > 1:
+            login_test = {}
+        try:
+            # append with two floating point precision
+            confidenceList.append('%.2f' % confidences[0])
+        except IndexError:
+            # If there is no face detected, confidences matrix will be empty.
+            # We can simply ignore it.
+            login_test = {}
+            pass
+
+        for i, c in enumerate(confidences):
+            if c <= thresh:
+                # If we lose confidence in one person, reset the logon counter
+                if persons[i] in login_test:
+                    login_test[persons[i]] = 0
+                    print_progress(0, LOGIN_CUTOFF+1, bar_length=35)
+                persons[i] = "_unknown"
+            else:
+                # If we know the face, update the logon counter
+                if persons[i] in login_test:
+                    login_test[persons[i]] += 1
+                else:
+                    login_test[persons[i]] = 0
+
+        # Print the person name and confidence value on the frame
+        cv2.putText(
+            frame, "P: {} C: {}".format(persons, confidences), (50, 50),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1
+        )
+        cv2.imshow('', frame)
+
+        # print(login_test)
+        for k, v in login_test.items():
+            print_progress(v, LOGIN_CUTOFF+1, bar_length=35)
+            if v > LOGIN_CUTOFF:
+                print("{} logged in!".format(k.decode('ascii')))
+                logged_in = k
+
+        # quit the program on the press of key 'q'
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    # When everything is done, release the capture
+    video_capture.release()
+    cv2.destroyAllWindows()
+    return logged_in
 
 
 if __name__ == '__main__':
@@ -153,61 +213,6 @@ if __name__ == '__main__':
         imgDim=args.imgDim,
         cuda=args.cuda
     )
-
-    # Capture device. Usually 0 will be webcam and 1 will be usb cam.
-    video_capture = cv2.VideoCapture(args.captureDevice)
-    video_capture.set(3, args.width)
-    video_capture.set(4, args.height)
-
-    confidenceList = []
-    login_test = {}
-    logged_in = False
-    while not logged_in:
-        ret, frame = video_capture.read()
-        persons, confidences = infer(frame, args)
-        # If there is more than one person in the image, do not try to log one
-        # of them in.
-        if len(persons) > 1:
-            login_test = {}
-        try:
-            # append with two floating point precision
-            confidenceList.append('%.2f' % confidences[0])
-        except IndexError:
-            # If there is no face detected, confidences matrix will be empty.
-            # We can simply ignore it.
-            login_test = {}
-            pass
-
-        for i, c in enumerate(confidences):
-            if c <= args.threshold:  # 0.5 is kept as threshold for known face.
-                # If we lose confidence in one person, reset the logon counter
-                if persons[i] in login_test:
-                    login_test[persons[i]] = 0
-                persons[i] = "_unknown"
-            else:
-                # If we know the face, update the logon counter
-                if persons[i] in login_test:
-                    login_test[persons[i]] += 1
-                else:
-                    login_test[persons[i]] = 0
-
-        # Print the person name and conf value on the frame
-        cv2.putText(
-            frame, "P: {} C: {}".format(persons, confidences), (50, 50),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1
-        )
-        cv2.imshow('', frame)
-
-        # print(login_test)
-        for k, v in login_test.items():
-            print_progress(v, LOGIN_CUTOFF+1, bar_length=35)
-            if v > LOGIN_CUTOFF:
-                print("{} logged in!".format(k))
-                logged_in = True
-
-        # quit the program on the press of key 'q'
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    # When everything is done, release the capture
-    video_capture.release()
-    cv2.destroyAllWindows()
+    person = recognize_person(args.captureDevice, args.width, args.height,
+                              args.classifierModel, args.threshold)
+    print("Recognized: {}".format(person))
