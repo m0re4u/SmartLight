@@ -4,12 +4,8 @@ location_provider: automatic # or automatic. Uses longitude and latitude if manu
 longitude: 4.9558081
 latitude: 52.3545352
 ping_address: localhost
-modules_directory: ./modules
 temperature_measurement_location: Schiphol
 temperature_threshold: 7
-run_name: light_on
-start_name: start
-stop_name: stop
 sleep_seconds: 1
 testing: False
 modules:

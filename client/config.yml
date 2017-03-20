@@ -1,15 +1,67 @@
-server_ip: 146.50.60.16
+server_ip: 10.42.0.177
 server_port: 50007
-location_provider: automatic # or automatic. Uses longitude and latitude if manual
+speech:
+  nlights: 4
+  pause_threshold: 0.6
+  phrase_time_limit: 5
+  commands:
+    - text:
+        - turn on
+        - make white
+      values:
+        - True
+        - True
+        - True
+    - text:
+        - turn off
+        - make black
+      values:
+        - False
+        - False
+        - False
+    - text:
+        - make red
+      values:
+        - True
+        - False
+        - False
+    - text:
+        - make green
+      values:
+        - False
+        - True
+        - False
+    - text:
+        - make blue
+      values:
+        - False
+        - False
+        - True
+    - text:
+        - make yellow
+      values:
+        - True
+        - True
+        - False
+    - text:
+        - make purple
+      values:
+        - True
+        - False
+        - True
+    - text:
+        - make cyan
+      values:
+        - False
+        - True
+        - True
+# manual or automatic. Uses longitude and latitude if manual
+location_provider: automatic
 longitude: 4.9558081
 latitude: 52.3545352
 ping_address: localhost
-modules_directory: ./modules
 temperature_measurement_location: Schiphol
 temperature_threshold: 10
-run_name: light_on
-start_name: start
-stop_name: stop
 sleep_seconds: 1
 testing: False
 modules:
@@ -55,13 +107,13 @@ modules:
     size:
       - 2
       - 2
-  modules.time_getter:
-    pos:
-      - 6
-      - 3
-    size:
-      - 2
-      - 2
+  # modules.time_getter:
+  #   pos:
+  #     - 6
+  #     - 3
+  #   size:
+  #     - 2
+  #     - 2
   # modules.trump_tweet:
   #  pos:
   #    - 9
@@ -70,7 +122,7 @@ modules:
   #    - 2
   #    - 2
   modules.speech_recognizer:
-    - {pos: [0, 6], size: [2, 2]}
-    - {pos: [3, 6], size: [2, 2]}
-    - {pos: [6, 6], size: [2, 2]}
-    - {pos: [9, 6], size: [2, 2]}
+    - {pos: [0, 9], size: [2, 2]}
+    - {pos: [3, 9], size: [2, 2]}
+    - {pos: [6, 9], size: [2, 2]}
+    - {pos: [9, 9], size: [2, 2]}
