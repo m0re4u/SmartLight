@@ -3,10 +3,10 @@
 # NOTE: this example requires PyAudio because it uses the Microphone class
 
 import speech_recognition as sr
-import editdistance
+from threading import Thread, Event
 
-class SpeechRecogniser:
 
+class SpeechRecogniser(object):
     def __init__(self, config):
 
         self.on_command = [["turn","on"],["turn","on","light"]]
@@ -16,6 +16,13 @@ class SpeechRecogniser:
         self.phrase_time_limit = 5
         self.n_lights = len(self.lights)
         self.lights_status = []
+
+        # Threading infrastructure
+        self.stop_recognising = Event()
+        self.thread = Thread(
+            name="Speechrec",
+            target=self.recognize_continuously
+        )
 
         for i in range(self.n_lights*3):
             self.lights_status.append(False)
@@ -70,7 +77,7 @@ class SpeechRecogniser:
                         is_command.append(True)
                     else:
                         is_command.append(False)
-                if not False in is_command:
+                if False not in is_command:
                     correct_candidates.append(candidate)
 
         if correct_candidates:
@@ -84,15 +91,30 @@ class SpeechRecogniser:
 
         return (candidate_text, right_light, conf)
 
+    def start(self):
+        """Start listening and recognising"""
+        self.stop_recognising.clear()
+        self.thread.start()
+
+    def stop(self):
+        """
+        Stop listening and recognising. Wait for all threads to terminate.
+        """
+        self.stop_recognising.set()
+        self.thread.join()
+
     def recognize_continuously(self):
         # obtain audio from the microphone
         r = sr.Recognizer()
         r.pause_threshold = self.pause_threshold
 
         with sr.Microphone() as source:
-            while(True):
+            while not self.stop_recognising.is_set():
                 print("Say something!")
-                audio = r.listen(source, phrase_time_limit=self.phrase_time_limit)
+                audio = r.listen(
+                    source,
+                    phrase_time_limit=self.phrase_time_limit
+                )
                 speech_to_text = r.recognize_google(audio, show_all=True)
                 if speech_to_text:
                     candidates = speech_to_text['alternative']
@@ -100,17 +122,62 @@ class SpeechRecogniser:
                     print(candidates)
                     # recognize speech using Google Speech Recognition
                 try:
-                    # for testing purposes, we're just using the default API key
-                    # to use another API key, use `r.recognize_google(audio, key="GOOGLE_SPEECH_RECOGNITION_API_KEY")`
+                    # for testing purposes, we're just using the default API
+                    # key to use another API key, use
+                    # `r.recognize_google(
+                    #     audio,
+                    #     key="GOOGLE_SPEECH_RECOGNITION_API_KEY"
+                    # )`
                     # instead of `r.recognize_google(audio)`
                     print("Google Speech Recognition thinks you said ")
                 except sr.UnknownValueError:
-                    print("Google Speech Recognition could not understand audio")
+                    print(
+                        "Google Speech Recognition could not understand audio"
+                    )
                 except sr.RequestError as e:
-                    print("Could not request results from Google Speech Recognition service; {0}".format(e))
+                    print(
+                        "Could not request results from Google Speech"
+                        " Recognition service; {0}".format(e)
+                    )
+        print("Stopped recognising.")
 
+
+global speech_recognisor
+speech_recognisor = None
+
+
+def start(config):
+    global speech_recognisor
+    if speech_recognisor is None:
+        speech_recognisor = SpeechRecogniser(config)
+    speech_recognisor.start()
+
+
+def stop(config):
+    global speech_recognisor
+    speech_recognisor.stop()
+
+
+def light_on(config):
+    global speech_recognisor
+    return speech_recognisor.light_on(config)
 
 
 if __name__ == "__main__":
-    recog = SpeechRecogniser([])
-    recog.recognize_continuously()
+    import yaml
+    from time import sleep
+    with open('../config.yml') as f:
+        config = yaml.load(f)
+
+    start(config)
+
+    sleep(1)
+
+    try:
+        while True:
+            print(light_on(config))
+            sleep(1)
+    except KeyboardInterrupt:
+        print("bye!")
+    finally:
+        stop(config)
