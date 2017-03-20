@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 # NOTE: this example requires PyAudio because it uses the Microphone class
+import logging
 
 import speech_recognition as sr
 from threading import Thread, Event
+
+logger = logging.getLogger(__name__)
 
 
 class SpeechRecogniser(object):
@@ -28,20 +31,25 @@ class SpeechRecogniser(object):
             self.lights_status.append(False)
 
     def recognize_command(self, candidates):
-
-        on_command, light_on, conf_on = self.find_command(candidates, self.on_command)
-        off_command, light_off, conf_off = self.find_command(candidates, self.off_command)
+        on_command, light_on, conf_on = self.find_command(
+            candidates,
+            self.on_command
+        )
+        off_command, light_off, conf_off = self.find_command(
+            candidates,
+            self.off_command
+        )
 
         if conf_on > 0:
-            print("On %s with confidence %s" % (light_on, conf_on))
-            print(on_command)
+            logger.debug("On %s with confidence %s", light_on, conf_on)
+            logger.debug(on_command)
             self.lightswitch(1, int(light_on))
         elif conf_off > 0:
-            print("Off %s with confidence %s" % (light_off, conf_off))
-            print(off_command)
+            logger.debug("Off %s with confidence %s", light_off, conf_off)
+            logger.debug(off_command)
             self.lightswitch(0, int(light_off))
         else:
-            print("No command found.")
+            logger.debug("No command found.")
 
     def lightswitch(self, on, n):
         if on:
@@ -62,34 +70,25 @@ class SpeechRecogniser(object):
         conf = 0
         correct_command = ""
 
-        correct_candidates = []
-        for candidate in candidates:
+        # Find correct candidates
+        correct_candidates = [
+            can for can in candidates
+            if any(
+                set(com) <= set(can['transcript'].split())
+                for com in commands
+            )
+        ]
+
+        # TODO: multiple lights?
+        for candidate in correct_candidates:
             candidate_text = candidate['transcript'].split()
-            if 'confidence' in candidate:
-                candidate_conf = candidate['confidence']
-            else:
-                candidate_conf = 0.5
-            command_found = False
-            for command in commands:
-                is_command = []
-                for word in command:
-                    if word in candidate_text:
-                        is_command.append(True)
-                    else:
-                        is_command.append(False)
-                if False not in is_command:
-                    correct_candidates.append(candidate)
+            for light in self.lights:
+                if light in candidate_text:
+                    right_light = light
+                    conf = candidate['confidence']
+                    correct_command = candidate_text
 
-        if correct_candidates:
-            for candidate in correct_candidates:
-                candidate_text = candidate['transcript'].split()
-                for light in self.lights:
-                    if light in candidate_text:
-                        right_light = light
-                        conf = candidate['confidence']
-                        correct_command = candidate_text
-
-        return (candidate_text, right_light, conf)
+        return (correct_command, right_light, conf)
 
     def start(self):
         """Start listening and recognising"""
@@ -119,7 +118,9 @@ class SpeechRecogniser(object):
                 if speech_to_text:
                     candidates = speech_to_text['alternative']
                     self.recognize_command(candidates)
-                    print(candidates)
+                    logger.debug("Candidates: ")
+                    for can in candidates:
+                        logger.debug(can)
                     # recognize speech using Google Speech Recognition
                 try:
                     # for testing purposes, we're just using the default API
@@ -166,6 +167,8 @@ def light_on(config):
 if __name__ == "__main__":
     import yaml
     from time import sleep
+    logging.basicConfig(level='DEBUG')
+
     with open('../config.yml') as f:
         config = yaml.load(f)
 
