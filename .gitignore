@@ -93,3 +93,8 @@ ENV/
 # dataset for OpenFace face detection
 client/modules/face_recognizer/aligned_data/
 client/modules/face_recognizer/raw_data/
+
+# C++ compiled files
+*.o
+server
+*.out
