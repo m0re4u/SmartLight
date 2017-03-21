@@ -4,6 +4,7 @@ import time
 import openface
 import time
 from thinning import apply_thinning
+from threading import Thread, Event
 
 class GestureRecognizer:
 
@@ -15,6 +16,25 @@ class GestureRecognizer:
         self.align = openface.AlignDlib('face_recognizer/shape_predictor_68_face_landmarks.dat')
         self.net = openface.TorchNeuralNet('face_recognizer/nn4.small2.v1.t7', 96)
 
+        # Threading infrastructure
+        self.stop_recognising = Event()
+        self.thread = Thread(
+            name="Gesture Recognising Thread",
+            target=self.recognize_continuously
+        )
+    
+    def start(self):
+        """Start listening and recognising"""
+        self.stop_recognising.clear()
+        self.thread.start()
+
+    def stop(self):
+        """
+        Stop listening and recognising. Wait for all threads to terminate.
+        """
+        self.stop_recognising.set()
+        self.thread.join()
+    
     def start_videocapture(self):
         self.fingers = 0
         self.light = False
@@ -34,7 +54,7 @@ class GestureRecognizer:
 
     def recognize_continuously(self):
         done = False
-        while(self.cap.isOpened() and not done):
+        while(self.cap.isOpened() and not done and not self.stop_recognising()):
             # time.sleep(0.5)
             finger_queue = []
 
@@ -292,6 +312,47 @@ class GestureRecognizer:
     #     else:
     #         return largest
 
+global gesture_recogniser
+gesture_recogniser = None
+
+
+def start(config):
+    global gesture_recogniser
+    if gesture_recogniser is None:
+        gesture_recogniser = GestureRecogniser(config)
+    gesture_recogniser.start()
+
+
+def stop(config):
+    global gesture_recogniser
+    gesture_recogniser.stop()
+
+
+def light_on(config):
+    global gesture_recogniser
+    return gesture_recogniser.light_on(config)
+
+
 if __name__ == "__main__":
-    recog = GestureRecognizer()
-    recog.recognize_continuously()
+    import yaml
+    # from time import sleep
+    logging.basicConfig(level='DEBUG')
+
+    with open('../config.yml') as f:
+        config = yaml.load(f)
+
+    gesture_recogniser = GestureRecognizer(config)
+    gesture_recogniser.recognize_continuously()
+    # start(config)
+
+    # sleep(1)
+
+    # try:
+    #     while True:
+    #         print(light_on(config))
+    #         sleep(1)
+    # except KeyboardInterrupt:
+    #     print("bye!")
+    # finally:
+    #     stop(config)
+
