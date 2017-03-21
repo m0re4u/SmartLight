@@ -134,6 +134,7 @@ class AudioListener(object):
                 logger.debug("-- Flushing Buffer")
         logger.debug("-- Found {} Claps".format(claps))
 
+    @staticmethod
     def diff_list(olist):
         difflist = [0]
         for i in range(0, len(olist)-1):
@@ -163,6 +164,7 @@ class AudioListener(object):
                 logger.debug("-- Clap count reset")
             if np.amax(deriv) > self.threshold:
                 logger.info("-- Found Clap")
+                claps += 1
             if saveAs is not None:
                 import pylab
                 pylab.plot(np.arange(len(deriv))/self.rate,
@@ -182,6 +184,6 @@ class AudioListener(object):
 if __name__ == "__main__":
     logging.basicConfig(level="INFO")
     listener = AudioListener()
-    listener.find_clap_naive()
+    listener.find_clap_deriv()
     listener.close()
     logger.debug("TEST COMPLETE")
