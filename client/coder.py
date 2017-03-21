@@ -8,6 +8,7 @@ def encode(xpos, ypos, width, height, red=True, green=True, blue=True,
     0 <= ypos <= 15: 4 bits
     """
 
+    
     # input validation first
     if not 0 <= xpos <= 31:
         raise ValueError('The x-position has to be between 0 and 31 inclusive'
@@ -26,6 +27,9 @@ def encode(xpos, ypos, width, height, red=True, green=True, blue=True,
         raise ValueError('The height and the y-position combined should not'
                          'go over the edge of the board')
 
+                         
+    width -= 1
+    height -= 1
     signal = 0
     signal += xpos
     signal <<= 4    # size of ypos
@@ -80,7 +84,7 @@ def decode(signal, color_bits=4):
     signal >>= 4
     xpos = signal & 2**5-1
 
-    return xpos, ypos, width, height, red, green, blue
+    return xpos, ypos, width+1, height+1, red, green, blue
 
 
 if __name__ == '__main__':
