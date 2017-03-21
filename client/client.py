@@ -7,8 +7,10 @@ from coder import encode
 from functools import wraps
 from importlib import import_module
 from time import sleep
-from modules.face_recognizer import FaceDetector as fr
 
+RUN_NAME = 'light_on'
+START_NAME = 'start'
+STOP_NAME = 'stop'
 logger = logging.getLogger(__name__)
 
 
@@ -52,37 +54,34 @@ class Client(object):
         `stop` function. This will be called when initialising, before
         `light_on` is called for the first time.
         """
-        run_name = self.config['run_name']
-        start_name = self.config['start_name']
-        stop_name = self.config['stop_name']
         try:
             module = import_module(module_name)
         except ImportError:
             logger.error(traceback.format_exc())
         else:
             # Check whether the module is usable
-            if not hasattr(module, run_name):
+            if not hasattr(module, RUN_NAME):
                 raise ImportError(
                     "{} must have a {} function".format(
                         module.__name__,
-                        run_name
+                        RUN_NAME
                     )
                 )
             self.modules.append(module)
 
             # Check whether the module has a `stop` function
-            if hasattr(module, stop_name):
+            if hasattr(module, STOP_NAME):
                 self.modules_with_stop.append(module)
 
             # Check whether the module has a `start` function
             # and verify it can be stopped.
-            if hasattr(module, start_name):
+            if hasattr(module, START_NAME):
                 if not self.modules_with_stop[-1] == module:
                     raise ImportError(
                         "A module with a {} function must also have a {}"
                         " function ({})".format(
-                            start_name,
-                            stop_name,
+                            START_NAME,
+                            STOP_NAME,
                             module.__name__
                         )
                     )
@@ -103,11 +102,11 @@ class Client(object):
             logger.error("THERE WAS AN ERROR")
             logger.error(traceback.format_exc())
         finally:
+            self.stop_modules()
             # self.send_msg((0, 0), (32, 16), (0, 0, 0))
             # THIS IS A HOTFIX, (32, 16) results in some weird bug with the
             # edge of the board
             self.send_msg((0, 0), (31, 15), (0, 0, 0))
-            self.stop_modules()
 
     @iter_func('modules_with_start')
     def start_modules(self, mod):
@@ -115,7 +114,7 @@ class Client(object):
         Run the `start` functions of the modules that have it
         """
         logger.debug("Starting: " + mod.__name__)
-        getattr(mod, self.config['start'])(self.config)
+        getattr(mod, START_NAME)(self.config)
 
     @iter_func('modules_with_stop')
     def stop_modules(self, mod):
@@ -124,10 +123,10 @@ class Client(object):
         """
         # Accept errors at stopping, because an erroneous module should not
         # stop other modules from stopping
-        logger.debug("Stopping: " + mod.__name__)
+        logger.info("Stopping: " + mod.__name__)
         try:
-            getattr(mod, self.config['stop'])(self.config)
-            logger.debug("Stopped {}".format(mod.__name__))
+            getattr(mod, STOP_NAME)(self.config)
+            logger.info("Stopped {}".format(mod.__name__))
         except:
             logger.error(traceback.format_exc())
             logger.warning("{} wasn't stopped!".format(mod.__name__))
@@ -151,13 +150,16 @@ class Client(object):
         # send the signal
         elif len(light_values) % 3 == 0:
             for i in range(0, len(light_values), 3):
-                pos = module_config[i]['pos']
-                size = module_config[i]['size']
-                send_msg(pos, size, light_values[i*3:(i+1)*3])
+                pos = module_config[i // 3]['pos']
+                size = module_config[i // 3]['size']
+                self.send_msg(pos, size, light_values[i*3:(i+1)*3])
         else:
-            logger.error("The tuple returned by {} does not have a length of a multiple of 3".format(module_name))
+            logger.error(
+                "The tuple returned by {} does not have a length of a multiple"
+                " of 3".format(module_name)
+                )
 
-    def send_msg(self, pos, size, light_values):
+    def send_msg(self, pos, size, light_values, timeout=3):
         signal = encode(*pos, *size, *light_values)
         # print(repr(self.config['testing']))
         if self.config['testing']:
@@ -170,6 +172,7 @@ class Client(object):
         # AF_INET: IPv4
         # SOCK_STREAM: TCP
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
         s.connect((ip, port))
         message = signal.to_bytes(4, byteorder='big')
         s.send(message)
@@ -199,6 +202,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     logging.basicConfig(level=args.log_level)
     if args.config_file is None:
+        # Use OpenFace to choose a configuration file
+        from modules.face_recognizer import FaceDetector as fr
+
         argument_dict = {
             'captureDevice': 0, 'height': 240, 'cuda': False, 'width': 320,
             'threshold': 0.5, 'imgDim': 96,

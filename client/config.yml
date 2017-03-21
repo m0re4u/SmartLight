@@ -1,0 +1,128 @@
+server_ip: 10.42.0.177
+server_port: 50007
+speech:
+  nlights: 4
+  pause_threshold: 0.6
+  phrase_time_limit: 5
+  commands:
+    - text:
+        - turn on
+        - make white
+      values:
+        - True
+        - True
+        - True
+    - text:
+        - turn off
+        - make black
+      values:
+        - False
+        - False
+        - False
+    - text:
+        - make red
+      values:
+        - True
+        - False
+        - False
+    - text:
+        - make green
+      values:
+        - False
+        - True
+        - False
+    - text:
+        - make blue
+      values:
+        - False
+        - False
+        - True
+    - text:
+        - make yellow
+      values:
+        - True
+        - True
+        - False
+    - text:
+        - make purple
+      values:
+        - True
+        - False
+        - True
+    - text:
+        - make cyan
+      values:
+        - False
+        - True
+        - True
+# manual or automatic. Uses longitude and latitude if manual
+location_provider: automatic
+longitude: 4.9558081
+latitude: 52.3545352
+ping_address: localhost
+temperature_measurement_location: Schiphol
+temperature_threshold: 10
+sleep_seconds: 1
+testing: False
+modules:
+  modules.aex_is_up:
+    pos:
+      - 13 # x-position, left is 0, positive is to the right
+      - 1 # y-position, top is 0, positive is down
+    size:
+      - 18 # x-size / width
+      - 13 # y-size / height
+  modules.always_on:
+    pos:
+      - 3
+      - 0
+    size:
+      - 2
+      - 2
+  # modules.gesture_recognizer:
+  #  pos:
+  #    - 6
+  #    - 0
+  #  size:
+  #    - 2
+  #    - 2
+  modules.kan_ik_een_korte_broek_aan:
+    pos:
+      - 9
+      - 0
+    size:
+      - 2
+      - 2
+  modules.ping_martin:
+    pos:
+      - 0
+      - 3
+    size:
+      - 2
+      - 2
+  modules.schiphol_temperature:
+    pos:
+      - 3
+      - 3
+    size:
+      - 2
+      - 2
+  # modules.time_getter:
+  #   pos:
+  #     - 6
+  #     - 3
+  #   size:
+  #     - 2
+  #     - 2
+  # modules.trump_tweet:
+  #  pos:
+  #    - 9
+  #    - 3
+  #  size:
+  #    - 2
+  #    - 2
+  modules.speech_recognizer:
+    - {pos: [0, 9], size: [2, 2]}
+    - {pos: [3, 9], size: [2, 2]}
+    - {pos: [6, 9], size: [2, 2]}
+    - {pos: [9, 9], size: [2, 2]}

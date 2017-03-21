@@ -14,7 +14,7 @@ openFaceDir = os.path.join(home, 'projects', 'openface')
 modelDir = os.path.join(openFaceDir, 'models')
 dlibModelDir = os.path.join(modelDir, 'dlib')
 openfaceModelDir = os.path.join(modelDir, 'openface')
-LOGIN_CUTOFF = 50
+LOGIN_CUTOFF = 20
 
 
 class FaceDetector():
@@ -136,7 +136,11 @@ class FaceDetector():
             # quit the program on the press of key 'q'
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-        # When everything is done, release the capture
+        # When everything is done, release the capture and destroy all the
+        # windows. This is a workaround, as a single destroyAllWindows() call
+        # doesn't actually close the window
+        cv2.destroyAllWindows()
+        cv2.imshow('', np.array(0))
         cv2.destroyAllWindows()
         video_capture.release()
         return logged_in.decode('ascii')
