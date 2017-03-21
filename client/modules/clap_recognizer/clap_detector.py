@@ -14,28 +14,38 @@ class AudioListener(object):
     """
     # Framework for class from
     # http://www.swharden.com/wp/2016-07-19-realtime-audio-visualization-in-python/
-    def __init__(self, recordingDevice=None, startStream=True):
-        logger.debug("-- Initalize Prep Detector")
+    def __init__(self, chunk_size=1028, buffer_length=4, max_distance=5,
+                 sample_rate=11025, threshold=0.5e9, method='naive', nclaps=2):
+        logger.debug("Initialise Prep Detector")
 
-        self.chunk = 1028  # number of data points to read at a time
-        self.rate = 11025  # time resolution of recordingdevice (Hz)
-        self.threshold = 0.5*(10**9)
-        # internal datastructure for stream buffer
-        logger.debug("-- Creating Stream Buffer")
-        self.soundBufferLength = 4  # length of internal buffer
+        # number of data points to read at a time
+        self.chunk = chunk_size
+        # time resolution of recordingdevice (Hz)
+        self.rate = sample_rate
+        self.soundBufferLength = buffer_length
+        self.threshold = threshold
+
+        # internal data structure for stream buffer
+        logger.debug("Creating Stream Buffer")
+        # length of internal buffer
         self.soundBuffer = np.zeros(self.soundBufferLength*self.rate)
 
-        # setup and start PyAudio stream
-        logger.debug("-- Creating Stream Object")
+        # set up and start PyAudio stream
+        logger.debug("Creating Stream Object")
         self.p = pyaudio.PyAudio()  # start the PyAudio class
-        if startStream:
-            self.stream_start()
 
         # Threading infrastructure
+        self.light_state = False
+
         self.stop_recognising = Event()
         self.thread = Thread(
             name="Clapdetect",
-            target=self.detect_naive_continuously
+            target=self.detect_continuously,
+            kwargs=dict(
+                method=method,
+                nclaps=nclaps,
+                max_distance=max_distance
+            )
         )
 
     # Basic functions for interaction with stream
@@ -46,7 +56,7 @@ class AudioListener(object):
 
     def stream_start(self):
         """connect to the audio device and start a stream"""
-        logger.debug("-- stream OPENED")
+        logger.debug("stream OPENED")
         self.stream = self.p.open(format=pyaudio.paInt32, channels=1,
                                   rate=self.rate, input=True,
                                   frames_per_buffer=self.chunk)
@@ -56,13 +66,29 @@ class AudioListener(object):
         if 'stream' in locals():
             self.stream.stop_stream()
             self.stream.close()
-        logger.debug("-- stream CLOSED")
+        logger.debug("stream CLOSED")
 
-    def close(self):
+    def start(self):
+        self.stream_start()
+        self.start_thread()
+
+    def stop(self):
         """gently detach from things."""
+        if self.thread.is_alive():
+            self.stop_thread()
         self.stream_stop()
         self.p.terminate()
-        logger.debug("-- process TERMINATED")
+        logger.debug("process TERMINATED")
+
+    def start_thread(self):
+        """Start the thread that recognises claps"""
+        self.stop_recognising.clear()
+        self.thread.start()
+
+    def stop_thread(self):
+        """Tell the thread to stop and block until it does."""
+        self.stop_recognising.set()
+        self.thread.join()
 
     # Buffer Functions
     def buffer_add(self):
@@ -73,19 +99,17 @@ class AudioListener(object):
     def buffer_flush(self):
         """completely flush buffer (purge all data that is in there)."""
 
+    def detect_continuously(self, method, **kwargs):
+        while not self.stop_recognising.is_set():
+            if method == "naive":
+                self.find_clap_naive(**kwargs)
+            else:
+                self.find_clap_deriv(**kwargs)
+            self.light_state = not self.light_state
+
     # Lights On function
-    def light_on(config_file, methode="naive"):
-        # TODO IMPLEMENT CHOICE FOR DETECTOR
-        listener = AudioListener()
-        if methode == "naive":
-            switch = listener.find_clap_naive()
-        else:
-            listener.find_clap_deriv()
-        listener.close()
-        if switch:
-            return {True, True, True}
-        else:
-            return
+    def light_on(self):
+        return (self.light_state,) * 3
 
     def buffer_plot(self, saveAs="03.png"):
         """plot what's in the tape."""
@@ -97,7 +121,7 @@ class AudioListener(object):
         if saveAs:
             pylab.savefig(saveAs, dpi=50)
         pylab.close('all')
-        logger.debug("-- Plot Saved")
+        logger.debug("Plot Saved")
 
     # Clap find functions
     def find_clap_naive(self, saveAs=None, nclaps=2, max_distance=5):
@@ -109,21 +133,21 @@ class AudioListener(object):
         claps = 0
         iterations = 0
         # Load data into buffer from stream
-        while(claps < nclaps):
+        while not self.stop_recognising.is_set() and claps < nclaps:
             # Fill buffer slot
             for i in range(0, self.soundBufferLength):
                 self.buffer_add()
             # Log
-            logger.debug("-- done with buffer loading")
-            logger.debug("-- checking for peaks")
+            logger.debug("done with buffer loading")
+            logger.debug("checking for peaks")
             # Find peaks
             # Reset clap count after 5 iterations (preventing false pos)
             iterations += 1
             if iterations > max_distance and claps > 0:
                 claps = 0
-                logger.debug("-- Clap count reset")
+                logger.debug("Clap count reset")
             if np.amax(self.soundBuffer) > self.threshold:
-                logger.info("-- Found Clap")
+                logger.info("Found Clap")
                 claps += 1
                 iterations = 0
                 if saveAs is not None:
@@ -131,8 +155,8 @@ class AudioListener(object):
                         f.write(str(self.soundBuffer.tolist()))
                     self.buffer_plot("{}{}.png".format(saveAs, claps))
                 self.soundBuffer = np.zeros(self.soundBufferLength*self.rate)
-                logger.debug("-- Flushing Buffer")
-        logger.debug("-- Found {} Claps".format(claps))
+                logger.debug("Flushing Buffer")
+        logger.debug("Found {} Claps".format(claps))
 
     @staticmethod
     def diff_list(olist):
@@ -148,11 +172,11 @@ class AudioListener(object):
         """
         claps = 0
         iterations = 0
-        while(claps < nclaps):
+        while not self.stop_recognising.is_set() and claps < nclaps:
             for i in range(0, self.soundBufferLength):
                 self.buffer_add()
-            logger.debug("-- done with buffer loading")
-            logger.debug("-- checking for peaks")
+            logger.debug("done with buffer loading")
+            logger.debug("checking for peaks")
             deriv = self.diff_list(self.soundBuffer)
             # The following two if-statements were edited by Martin because
             # he thought this would fix the logic
@@ -161,9 +185,9 @@ class AudioListener(object):
             if iterations > max_distance:
                 claps = 0
                 iterations = 0
-                logger.debug("-- Clap count reset")
+                logger.debug("Clap count reset")
             if np.amax(deriv) > self.threshold:
-                logger.info("-- Found Clap")
+                logger.info("Found Clap")
                 claps += 1
             if saveAs is not None:
                 import pylab
@@ -182,8 +206,15 @@ class AudioListener(object):
 
 
 if __name__ == "__main__":
+    from time import sleep
     logging.basicConfig(level="INFO")
     listener = AudioListener()
-    listener.find_clap_deriv()
-    listener.close()
+    listener.start()
+
+    for i in range(10):
+        print(listener.light_on())
+        sleep(1)
+    # listener.stream_start()
+    # listener.find_clap_deriv()
+    listener.stop()
     logger.debug("TEST COMPLETE")

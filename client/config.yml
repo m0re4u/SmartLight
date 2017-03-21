@@ -56,6 +56,14 @@ speech:
         - True
         - True
 # manual or automatic. Uses longitude and latitude if manual
+clap_detection:
+  method: naive
+  nclaps: 2
+  buffer_length: 4
+  max_distance: 5
+  chunk_size: 1028
+  sample_rate: 11025
+  threshold: 0.5e+2
 location_provider: automatic
 longitude: 4.9558081
 latitude: 52.3545352
@@ -65,6 +73,13 @@ temperature_threshold: 10
 sleep_seconds: 1
 testing: False
 modules:
+  modules.clap_recognizer:
+    pos:
+      - 0
+      - 9
+    size:
+      - 12
+      - 6
   modules.aex_is_up:
     pos:
       - 13 # x-position, left is 0, positive is to the right
@@ -121,8 +136,8 @@ modules:
   #  size:
   #    - 2
   #    - 2
-  modules.speech_recognizer:
-    - {pos: [0, 9], size: [2, 2]}
-    - {pos: [3, 9], size: [2, 2]}
-    - {pos: [6, 9], size: [2, 2]}
-    - {pos: [9, 9], size: [2, 2]}
+  # modules.speech_recognizer:
+  #   - {pos: [0, 6], size: [2, 2]}
+  #   - {pos: [3, 6], size: [2, 2]}
+  #   - {pos: [6, 6], size: [2, 2]}
+  #   - {pos: [9, 6], size: [2, 2]}
