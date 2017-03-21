@@ -1,6 +1,5 @@
 import pyaudio
 import numpy as np
-import pylab
 import logging
 from threading import Thread, Event
 
@@ -90,6 +89,7 @@ class AudioListener(object):
 
     def buffer_plot(self, saveAs="03.png"):
         """plot what's in the tape."""
+        import pylab
         pylab.plot(np.arange(len(self.soundBuffer))/self.rate,
                    self.soundBuffer)
         pylab.axhline(y=self.threshold, color='r')
