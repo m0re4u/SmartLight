@@ -169,6 +169,7 @@ class AudioListener(object):
             logger.debug(i)
         self.soundBuffer = abs(self.soundBuffer)
 
+
 if __name__ == "__main__":
     logging.basicConfig(level="INFO")
     listener = AudioListener()

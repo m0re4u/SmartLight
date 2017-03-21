@@ -6,6 +6,7 @@ import pylab
 import sys
 import numpy as np
 
+
 class SWHear(object):
     """
     The SWHear class is made to provide access to continuously recorded
@@ -54,7 +55,7 @@ class SWHear(object):
         self.stream_stop()
         self.p.terminate()
 
-    ### TAPE METHODS
+    # TAPE METHODS
     # tape is like a circular magnetic ribbon of tape that's continously
     # recorded and recorded over in a loop. self.tape contains this data.
     # the newest data is always at the end. Don't modify data on the type,
@@ -68,7 +69,7 @@ class SWHear(object):
     def tape_flush(self):
         """completely fill tape with new data."""
         readsInTape = int(self.rate*self.tapeLength/self.chunk)
-        print(" -- flushing %d s tape with %dx%.2f ms reads" % \
+        print(" -- flushing %d s tape with %dx%.2f ms reads" %
               (self.tapeLength, readsInTape, self.chunk/self.rate))
         for i in range(readsInTape):
             self.tape_add()
@@ -91,12 +92,13 @@ class SWHear(object):
         pylab.plot(np.arange(len(self.tape))/self.rate, self.tape)
         pylab.axis([0, self.tapeLength, -2**31, 2**31])
         if saveAs:
-            t1 = time.time()
+            # t1 = time.time()
             pylab.savefig(saveAs, dpi=50)
             # print("plotting saving took %.02f ms" % ((time.time()-t1)*1000))
         else:
             pylab.show()
         pylab.close('all')
+
 
 if __name__ == "__main__":
     ear = SWHear()
