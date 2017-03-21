@@ -100,13 +100,16 @@ class AudioListener(object):
         logger.debug("-- Plot Saved")
 
     # Clap find functions
-    def find_clap_naive(self):
-        """Naive way of finding clap above a threshold."""
+    def find_clap_naive(self, saveAs=None, nclaps=2, max_distance=5):
+        """
+        Naive way of finding clap above a threshold.
+        Blocks until `nclaps` are found within `max_distance` iterations
+        """
         # Initiate variables
         claps = 0
         iterations = 0
         # Load data into buffer from stream
-        while(claps < 2):
+        while(claps < nclaps):
             # Fill buffer slot
             for i in range(0, self.soundBufferLength):
                 self.buffer_add()
@@ -116,23 +119,20 @@ class AudioListener(object):
             # Find peaks
             # Reset clap count after 5 iterations (preventing false pos)
             iterations += 1
-            if iterations > 5 and claps == 1:
+            if iterations > max_distance and claps > 0:
                 claps = 0
                 logger.debug("-- Clap count reset")
             if np.amax(self.soundBuffer) > self.threshold:
                 logger.info("-- Found Clap")
                 claps += 1
                 iterations = 0
-                with open('datadump{}.txt'.format(claps), 'w') as f:
-                    f.write(str(self.soundBuffer.tolist()))
-                self.buffer_plot("{}.png".format(claps))
+                if saveAs is not None:
+                    with open('{}{}.txt'.format(saveAs, claps), 'w') as f:
+                        f.write(str(self.soundBuffer.tolist()))
+                    self.buffer_plot("{}{}.png".format(saveAs, claps))
                 self.soundBuffer = np.zeros(self.soundBufferLength*self.rate)
                 logger.debug("-- Flushing Buffer")
         logger.debug("-- Found {} Claps".format(claps))
-        if claps == 2:
-            return True
-        else:
-            return False
 
     def diff_list(olist):
         difflist = [0]
@@ -140,28 +140,37 @@ class AudioListener(object):
             difflist.append(olist[i+1]-olist[i])
         return difflist
 
-    def find_clap_deriv(self, saveAs="deriv.png"):
+    def find_clap_deriv(self, saveAs=None, nclaps=2, max_distance=5):
+        """
+        Block until the `nclaps` claps are found, all within `max_distance`
+        iterations.
+        """
         claps = 0
         iterations = 0
-        while(claps < 2):
+        while(claps < nclaps):
             for i in range(0, self.soundBufferLength):
                 self.buffer_add()
             logger.debug("-- done with buffer loading")
             logger.debug("-- checking for peaks")
             deriv = self.diff_list(self.soundBuffer)
-            iterations += 1
-            if iterations > 5 and claps == 1:
+            # The following two if-statements were edited by Martin because
+            # he thought this would fix the logic
+            if claps > 0:
+                iterations += 1
+            if iterations > max_distance:
                 claps = 0
+                iterations = 0
                 logger.debug("-- Clap count reset")
             if np.amax(deriv) > self.threshold:
                 logger.info("-- Found Clap")
-            pylab.plot(np.arange(len(deriv))/self.rate,
-                       deriv)
-            pylab.axis([0, self.soundBufferLength, -2**31, 2**31])
-            if saveAs:
+            if saveAs is not None:
+                import pylab
+                pylab.plot(np.arange(len(deriv))/self.rate,
+                           deriv)
+                pylab.axis([0, self.soundBufferLength, -2**31, 2**31])
                 pylab.savefig(saveAs, dpi=50)
-            pylab.close('all')
-        return True
+                pylab.close('all')
+        # return True
 
     def find_clap_stat(self):
         for i in range(0, self.soundBufferLength):
