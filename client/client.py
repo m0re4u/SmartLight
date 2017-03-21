@@ -134,7 +134,7 @@ class Client(object):
     @iter_func('modules')
     def lights_on(self, mod):
         lights = mod.light_on(self.config)
-        logger.info('{}: {}'.format(mod.__name__, lights))
+        logger.debug('{}: {}'.format(mod.__name__, lights))
         self.send_lights(mod.__name__, lights)
 
     def send_lights(self, module_name, light_values):
