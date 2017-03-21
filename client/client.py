@@ -152,7 +152,14 @@ class Client(object):
             for i in range(0, len(light_values), 3):
                 pos = module_config[i // 3]['pos']
                 size = module_config[i // 3]['size']
-                self.send_msg(pos, size, light_values[i*3:(i+1)*3])
+                one_light = light_values[i:(i+3)]
+                logger.debug(
+                    "Sending: pos: {}, size: {}, values: {}".format(
+                        pos,
+                        size,
+                        one_light
+                    ))
+                self.send_msg(pos, size, one_light)
         else:
             logger.error(
                 "The tuple returned by {} does not have a length of a multiple"
