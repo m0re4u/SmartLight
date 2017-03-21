@@ -145,37 +145,37 @@ class SpeechRecogniser(object):
         # print("Stopped recognising.")
 
 
-global speech_recognisor
-speech_recognisor = None
+global speech_recogniser
+speech_recogniser = None
 
 
 def start(config):
-    global speech_recognisor
-    if speech_recognisor is None:
-        speech_recognisor = SpeechRecogniser(config)
-    speech_recognisor.start()
+    global speech_recogniser
+    if speech_recogniser is None:
+        speech_recogniser = SpeechRecogniser(config)
+    speech_recogniser.start()
 
 
 def stop(config):
-    global speech_recognisor
-    speech_recognisor.stop()
+    global speech_recogniser
+    speech_recogniser.stop()
 
 
 def light_on(config):
-    global speech_recognisor
-    return speech_recognisor.light_on(config)
+    global speech_recogniser
+    return speech_recogniser.light_on(config)
 
 
 if __name__ == "__main__":
     import yaml
-    from time import sleep
+    # from time import sleep
     logging.basicConfig(level='DEBUG')
 
     with open('../config.yml') as f:
         config = yaml.load(f)
 
-    speech_recognisor = SpeechRecogniser(config)
-    speech_recognisor.recognize_continuously()
+    speech_recogniser = SpeechRecogniser(config)
+    speech_recogniser.recognize_continuously()
     # start(config)
 
     # sleep(1)
