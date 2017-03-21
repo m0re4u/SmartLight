@@ -62,6 +62,8 @@ class SpeechRecogniser(object):
         logger.debug(self.lights_status)
 
     def light_on(self, config):
+        if not self.thread.is_alive():
+            raise Exception("The listening thread died!")
         return tuple(self.lights_status)
 
     def find_command(self, candidates, texts):
@@ -164,6 +166,7 @@ def stop(config):
 def light_on(config):
     global speech_recogniser
     return speech_recogniser.light_on(config)
+    # return (False,) * 12
 
 
 if __name__ == "__main__":
