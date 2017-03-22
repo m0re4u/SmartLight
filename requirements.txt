@@ -7,3 +7,4 @@ numpy==1.11.2
 afinn==0.1
 opencv-python==3.2.0.6
 python-twitter==3.2.1
+num2words==0.5.4

@@ -18,7 +18,8 @@ class SpeechRecogniser(object):
         # Split the text of the commands
         for description in self.commands:
             description['text'] = [
-                frozenset(string.lower().split()) for string in description['text']
+                frozenset(string.lower().split())
+                for string in description['text']
             ]
 
         self.pause_threshold = config['speech']['pause_threshold']
@@ -50,11 +51,11 @@ class SpeechRecogniser(object):
         if commands:
             values, lights, confidence = max(commands, key=lambda c: c[2])
             self.lightswitch(values, lights)
-            logger.debug("Executed command: {}, {}, {}".format(
+            logger.info("Executed command: {}, {}, {}".format(
                 values, lights, confidence
             ))
         else:
-            logger.debug("No command found.")
+            logger.info("No command found.")
 
     def lightswitch(self, values, lights):
         for n in lights:
@@ -63,7 +64,7 @@ class SpeechRecogniser(object):
 
     def light_on(self, config):
         if not self.thread.is_alive():
-            raise Exception("The listening thread died!")
+            raise Exception("There is no listening thread!")
         return tuple(self.lights_status)
 
     def find_command(self, candidates, texts):
@@ -85,7 +86,13 @@ class SpeechRecogniser(object):
             (
                 [light for light in range(self.n_lights)
                  if str(light + 1) in can['transcript']],
-                can['confidence']
+                (
+                    can['confidence']
+                    if 'confidence' in can
+                    else logger.warn(
+                        "Candidate without confidence: {}".format(can)
+                    ) or 0.1
+                )
             )
             for can in correct_candidates
         ]
@@ -117,7 +124,7 @@ class SpeechRecogniser(object):
                     source,
                     phrase_time_limit=self.phrase_time_limit
                 )
-                    # recognize speech using Google Speech Recognition
+                # recognize speech using Google Speech Recognition
                 try:
                     speech_to_text = r.recognize_google(audio, show_all=True)
                     # for testing purposes, we're just using the default API
@@ -140,10 +147,10 @@ class SpeechRecogniser(object):
                 else:
                     if speech_to_text:
                         candidates = speech_to_text['alternative']
-                        self.recognize_command(candidates)
                         logger.debug("Candidates: ")
                         for can in candidates:
                             logger.debug(can)
+                        self.recognize_command(candidates)
         # print("Stopped recognising.")
 
 

@@ -6,51 +6,51 @@ speech:
   phrase_time_limit: 5
   commands:
     - text:
-        - turn on
-        - make white
+        - 'on'
+        - white
       values:
         - True
         - True
         - True
     - text:
-        - turn off
-        - make black
+        - 'off'
+        - black
       values:
         - False
         - False
         - False
     - text:
-        - make red
+        - red
       values:
         - True
         - False
         - False
     - text:
-        - make green
+        - green
       values:
         - False
         - True
         - False
     - text:
-        - make blue
+        - blue
       values:
         - False
         - False
         - True
     - text:
-        - make yellow
+        - yellow
       values:
         - True
         - True
         - False
     - text:
-        - make purple
+        - purple
       values:
         - True
         - False
         - True
     - text:
-        - make cyan
+        - cyan
       values:
         - False
         - True

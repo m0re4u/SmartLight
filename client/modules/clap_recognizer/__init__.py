@@ -1,5 +1,9 @@
 import logging
-from .clap_detector import AudioListener
+
+if __name__ == '__main__':
+    from clap_detector import AudioListener
+else:
+    from .clap_detector import AudioListener
 
 logger = logging.getLogger(__name__)
 global audio_listener

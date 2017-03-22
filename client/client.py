@@ -11,6 +11,7 @@ from time import sleep
 RUN_NAME = 'light_on'
 START_NAME = 'start'
 STOP_NAME = 'stop'
+
 logger = logging.getLogger(__name__)
 
 
@@ -170,7 +171,7 @@ class Client(object):
         signal = encode(*pos, *size, *light_values)
         # print(repr(self.config['testing']))
         if self.config['testing']:
-            logger.debug("Sending: {}".format(signal))
+            logger.debug("Sending: {:b}".format(signal))
             return
 
         ip = self.config['server_ip']
@@ -205,9 +206,37 @@ if __name__ == '__main__':
         '--log_level',
         default='INFO'
     )
+    parser.add_argument(
+        '--log_file',
+        default='log.txt',
+    )
 
     args = parser.parse_args()
-    logging.basicConfig(level=args.log_level)
+    # logging.basicConfig(level=args.log_level)
+
+    # get the root logger and set its level to DEBUG
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(args.log_level)
+
+    # add formatter to ch
+    ch.setFormatter(logging.Formatter(
+        '%(levelname)s: %(name)s: %(message)s'
+    ))
+
+    # Create file handler
+    fh = logging.FileHandler(args.log_file)
+    fh.setFormatter(logging.Formatter(
+        '%(asctime)s: %(levelname)s: %(name)s: %(message)s'
+    ))
+
+    # add ch to root logger
+    root.addHandler(fh)
+    root.addHandler(ch)
+
     if args.config_file is None:
         # Use OpenFace to choose a configuration file
         from modules.face_recognizer import FaceDetector as fr
@@ -238,3 +267,4 @@ if __name__ == '__main__':
 
     client = Client(config)
     client.run()
+    logging.shutdown()
