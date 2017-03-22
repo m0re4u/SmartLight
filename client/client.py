@@ -11,6 +11,7 @@ from time import sleep
 RUN_NAME = 'light_on'
 START_NAME = 'start'
 STOP_NAME = 'stop'
+
 logger = logging.getLogger(__name__)
 
 
@@ -213,9 +214,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # logging.basicConfig(level=args.log_level)
 
-    # create logger
-    # logger = logging.getLogger('simple_example')
-    logger.setLevel(logging.DEBUG)
+    # get the root logger and set its level to DEBUG
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
 
     # create console handler and set level to debug
     ch = logging.StreamHandler()
@@ -232,9 +233,9 @@ if __name__ == '__main__':
         '%(asctime)s: %(levelname)s: %(name)s: %(message)s'
     ))
 
-    # add ch to logger
-    logger.addHandler(fh)
-    logger.addHandler(ch)
+    # add ch to root logger
+    root.addHandler(fh)
+    root.addHandler(ch)
 
     if args.config_file is None:
         # Use OpenFace to choose a configuration file
