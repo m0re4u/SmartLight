@@ -104,10 +104,7 @@ class Client(object):
             logger.error(traceback.format_exc())
         finally:
             self.stop_modules()
-            # self.send_msg((0, 0), (32, 16), (0, 0, 0))
-            # THIS IS A HOTFIX, (32, 16) results in some weird bug with the
-            # edge of the board
-            self.send_msg((0, 0), (31, 15), (0, 0, 0))
+            self.send_msg((0, 0), (32, 16), (0, 0, 0))
 
     @iter_func('modules_with_start')
     def start_modules(self, mod):
@@ -171,7 +168,7 @@ class Client(object):
         signal = encode(*pos, *size, *light_values)
         # print(repr(self.config['testing']))
         if self.config['testing']:
-            logger.debug("Sending: {:b}".format(signal))
+            logger.debug("Sending: {:0>32b}".format(signal))
             return
 
         ip = self.config['server_ip']
