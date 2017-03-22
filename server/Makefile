@@ -1,7 +1,7 @@
 CFLAGS=-Wall -O3 -g
 CXXFLAGS=-Wall -O3 -g -std=c++11 -Wextra -pedantic
 S_OBJECTS=main.o gpio.o led-matrix.o thread.o LedServer.o
-S_BINARIES=server
+S_BINARIES=server.out
 LDFLAGS=-lrt -lm -lpthread
 
 all : $(S_BINARIES)

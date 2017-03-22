@@ -98,5 +98,4 @@ client/modules/face_recognizer/raw_data/
 
 # C++ compiled files
 *.o
-server
 *.out
