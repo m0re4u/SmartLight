@@ -166,7 +166,7 @@ class Client(object):
                 " of 3".format(module_name)
                 )
 
-    def send_msg(self, pos, size, light_values, timeout=3):
+    def send_msg(self, pos, size, light_values, timeout=10):
         signal = encode(*pos, *size, *light_values)
         # print(repr(self.config['testing']))
         if self.config['testing']:
