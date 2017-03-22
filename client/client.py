@@ -171,7 +171,7 @@ class Client(object):
         signal = encode(*pos, *size, *light_values)
         # print(repr(self.config['testing']))
         if self.config['testing']:
-            logger.debug("Sending: {}".format(signal))
+            logger.debug("Sending: {:b}".format(signal))
             return
 
         ip = self.config['server_ip']
