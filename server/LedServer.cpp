@@ -52,9 +52,9 @@ void LedServer::Run() {
         std::cout << " green: " << data.square.green << '\n';
         std::cout << " blue: " << data.square.blue << '\n';
 
-        for (int w = 0; w =< data.square.width; ++w)
+        for (int w = 0; w <= data.square.width; ++w)
         {
-            for (int h = 0; h =< data.square.height; ++h)
+            for (int h = 0; h <= data.square.height; ++h)
             {
                 matrix->SetPixel(
                     data.square.x_pos + w,
