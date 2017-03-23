@@ -50,7 +50,7 @@ speech:
         - False
         - True
     - text:
-        - cyan
+        - turquoise
       values:
         - False
         - True
