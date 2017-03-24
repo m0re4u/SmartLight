@@ -3,17 +3,25 @@ import numpy as np
 import time
 import openface
 import time
-from thinning import apply_thinning
+# import socket
+import subprocess
+import logging
+logger = logging.getLogger(__name__)
 
-class GestureRecognizer:
+class GestureRecognizer(object):
 
-    def __init__(self):
+    def __init__(self, config):
         # Starting with 100's to prevent error while masking
+        self.config = config
         self.threshold = 2.5
+        self.high_threshold = 3.5
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.start_videocapture()
-        self.align = openface.AlignDlib('face_recognizer/shape_predictor_68_face_landmarks.dat')
-        self.net = openface.TorchNeuralNet('face_recognizer/nn4.small2.v1.t7', 96)
+        self.align = openface.AlignDlib('/home/verna/openface/models/dlib/shape_predictor_68_face_landmarks.dat')
+        self.net = openface.TorchNeuralNet('/home/verna/openface/models/openface/nn4.small2.v1.t7', 96)
+        self.pos = config["modules"]["modules.gesture_recognizer"]["pos"]
+        print(self.pos)
+        self.size = config["modules"]["modules.gesture_recognizer"]["size"]
 
     def start_videocapture(self):
         self.fingers = 0
@@ -39,7 +47,7 @@ class GestureRecognizer:
             finger_queue = []
 
             # Do 20 videocaptures before changing the light switch
-            for i in range(5):
+            for i in range(10):
                 self.recognize_once()
                 finger_queue.append(self.fingers)
                 # Close the output video by pressing 'ESC'
@@ -51,13 +59,106 @@ class GestureRecognizer:
             # Change light if average number of fingers is higher than
             # threshold
             if finger_queue and np.mean(finger_queue) > self.threshold:
-                self.light = True
-                print(self.light)
+            #     self.light = not self.light
+
+            # if self.light:
+                self.send_msg(self.pos, self.size, (True, False, False))
             else:
-                self.light = False
+                self.send_msg(self.pos, self.size, (False, False, False))
 
         self.cap.release()
         cv2.destroyAllWindows()
+
+    def send_msg(self, pos, size, light_values, timeout=10):
+        args = list(pos) + list(size) + list(light_values)
+        print(args)
+        signal = self.encode(*args)
+        # message = bytes(signal)
+        # print(repr(self.config['testing']))
+        if self.config['testing']:
+            logger.debug("Sending: {:0>32b}".format(signal))
+            return
+
+        ip = self.config['server_ip']
+        port = self.config['server_port']
+
+        # AF_INET: IPv4
+        # SOCK_STREAM: TCP
+        # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # s.settimeout(timeout)
+        # s.connect((ip, port))
+        # # message = signal.to_bytes(4, byteorder='big')
+        # s.send(message)
+
+        # # Receive a message (as part of TCP?) (and discard it)
+        # s.recv(1000)
+        # s.close()
+        subprocess.call(['python3', 'send.py', str(signal)])
+
+    @staticmethod
+    def encode_color(color, n_bits):
+        """
+        If color is given as boolean, interpret it as maximally on or totally off.
+        Otherwise check whether it fits within the number of bits.
+        """
+        if isinstance(color, bool):
+            return (2 ** n_bits - 1) * color
+        elif 0 <= color < 2 ** n_bits:
+            return color
+        else:
+            raise ValueError(
+                "`color` should be a boolean or be between 0 and 2 ** n_bits - 1"
+            )
+
+    def encode(self, xpos, ypos, width, height, red=True, green=True, blue=True,
+           color_bits=4):
+        """
+        Given the position and color of the leds, encodes this information in an
+        int of 3 bytes, which can be decoded using decode
+
+        0 <= xpos <= 31: 5 bits
+        0 <= ypos <= 15: 4 bits
+        """
+
+        # input validation first
+        if not 0 <= xpos <= 31:
+            print(xpos)
+            raise ValueError('The x-position has to be between 0 and 31 inclusive'
+                             'to fit the size of the board')
+        elif not 0 <= ypos <= 15:
+            raise ValueError('The y-position has to be between 0 and 15 inclusive'
+                             'to fit the size of the board')
+        elif width < 1:
+            raise ValueError('The width value has to be higher than 0')
+        elif height < 1:
+            raise ValueError('The height value has to be higher than 0')
+        elif width + xpos > 32:
+            raise ValueError('The width and the x-position combined should not'
+                             'go over the edge of the board')
+        elif height + ypos > 16:
+            raise ValueError('The height and the y-position combined should not'
+                             'go over the edge of the board')
+
+
+        width -= 1
+        height -= 1
+        signal = 0
+        signal += xpos
+        signal <<= 4    # size of ypos
+        signal += ypos
+        signal <<= 5    # size of width
+        signal += width
+        signal <<= 4    # size of height
+        signal += height
+
+        signal <<= color_bits    # size of colour bits
+        signal += self.encode_color(red, color_bits)
+        signal <<= color_bits    # size of colour bits
+        signal += self.encode_color(green, color_bits)
+        signal <<= color_bits    # size of colour bits
+        signal += self.encode_color(blue, color_bits)
+
+        return signal
 
     def recognize(self):
         self.recognize_once()
@@ -110,6 +211,7 @@ class GestureRecognizer:
         contours, hierarchy = cv2.findContours(
             thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        poly = []
 
         if len(contours) > 0:
             # Find Max contour area (Assume that hand is in the frame)
@@ -162,7 +264,8 @@ class GestureRecognizer:
                         far = tuple(cnts[f][0])
                         dist = d
                         FarDefect.append(far)
-                        if dist > 8000 and y < (1.5 * (maxX - minX)):
+                        hordist = maxX - minX
+                        if dist > 30 * hordist and y < (1.5 * hordist):
                             fingers += 1
                             cv2.line(frame, start, end, [0, 255, 0], 1)
                             cv2.circle(frame, far, 10, [100, 255, 255], 3)
@@ -247,8 +350,8 @@ class GestureRecognizer:
             # self.fingers = result
 
 
-
-            cv2.drawContours(frame, [poly], -1, (255, 255, 255), 2)
+            if len(poly) > 0:
+                cv2.drawContours(frame, [poly], -1, (255, 255, 255), 2)
 
             # Print number of pointed fingers
             cv2.putText(frame, str(self.fingers)+" fingers", (100, 100),
@@ -263,6 +366,7 @@ class GestureRecognizer:
         X = [coordinates[0] for item in contours for coordinates in item]
         Y = [coordinates[1] for item in contours for coordinates in item]
         img = frame[min(Y):max(Y),min(X):max(X)]
+        cv2.imwrite('face.png',img)
 
         # Look for faces in nonempty image
         if not len(img) == 0:
@@ -293,5 +397,8 @@ class GestureRecognizer:
     #         return largest
 
 if __name__ == "__main__":
-    recog = GestureRecognizer()
+    import yaml
+    with open('../config.yml') as f:
+        config = yaml.load(f)
+    recog = GestureRecognizer(config)
     recog.recognize_continuously()
